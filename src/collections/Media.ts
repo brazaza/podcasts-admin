@@ -5,12 +5,23 @@ export const Media: CollectionConfig = {
   access: {
     read: () => true,
   },
+  admin: {
+    useAsTitle: 'alt',
+    defaultColumns: ['filename', 'mimeType'],
+  },
+  upload: {
+    mimeTypes: ['image/*', 'audio/*'],
+    staticDir: undefined,
+  },
   fields: [
     {
       name: 'alt',
       type: 'text',
       required: true,
     },
+    {
+      name: 'description',
+      type: 'textarea',
+    },
   ],
-  upload: true,
 }

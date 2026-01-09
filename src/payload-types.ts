@@ -69,6 +69,8 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    authors: Author;
+    podcasts: Podcast;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,13 +80,15 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    authors: AuthorsSelect<false> | AuthorsSelect<true>;
+    podcasts: PodcastsSelect<false> | PodcastsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
   globals: {};
@@ -121,7 +125,7 @@ export interface UserAuthOperations {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -145,8 +149,9 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt: string;
+  description?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -161,10 +166,91 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors".
+ */
+export interface Author {
+  id: number;
+  name: string;
+  bio?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  avatar?: (number | null) | Media;
+  /**
+   * Контакты и соцсети (опционально)
+   */
+  socials?: {
+    vk?: string | null;
+    soundcloud?: string | null;
+    instagram?: string | null;
+    website?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "podcasts".
+ */
+export interface Podcast {
+  id: number;
+  title: string;
+  slug?: string | null;
+  type: 'podcast' | 'mixtape';
+  author?: (number | null) | Author;
+  cover?: (number | null) | Media;
+  audio: number | Media;
+  description?: string | null;
+  /**
+   * Полный текст выпуска
+   */
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  tags?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  mirrors?: {
+    vk?: string | null;
+    soundcloud?: string | null;
+  };
+  status?: ('draft' | 'published') | null;
+  publishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -181,20 +267,28 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'authors';
+        value: number | Author;
+      } | null)
+    | ({
+        relationTo: 'podcasts';
+        value: number | Podcast;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -204,10 +298,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -227,7 +321,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -261,6 +355,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  description?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -272,6 +367,55 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors_select".
+ */
+export interface AuthorsSelect<T extends boolean = true> {
+  name?: T;
+  bio?: T;
+  avatar?: T;
+  socials?:
+    | T
+    | {
+        vk?: T;
+        soundcloud?: T;
+        instagram?: T;
+        website?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "podcasts_select".
+ */
+export interface PodcastsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  type?: T;
+  author?: T;
+  cover?: T;
+  audio?: T;
+  description?: T;
+  body?: T;
+  tags?:
+    | T
+    | {
+        value?: T;
+        id?: T;
+      };
+  mirrors?:
+    | T
+    | {
+        vk?: T;
+        soundcloud?: T;
+      };
+  status?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
