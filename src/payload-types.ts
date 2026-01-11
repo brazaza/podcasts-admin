@@ -171,6 +171,7 @@ export interface Media {
 export interface Author {
   id: number;
   name: string;
+  birthday?: string | null;
   bio?: {
     root: {
       type: string;
@@ -374,6 +375,7 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface AuthorsSelect<T extends boolean = true> {
   name?: T;
+  birthday?: T;
   bio?: T;
   avatar?: T;
   socials?:

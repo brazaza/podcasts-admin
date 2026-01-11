@@ -1,59 +1,51 @@
-import { headers as getHeaders } from 'next/headers.js'
-import Image from 'next/image'
-import { getPayload } from 'payload'
-import React from 'react'
-import { fileURLToPath } from 'url'
+import { PodcastCard } from "@/components/podcast-card";
+import { FeaturedHero } from "@/components/featured-hero";
+import { PodcastGrid } from "@/components/podcast-grid";
+import { getPublishedPodcasts, REVALIDATE_TIME } from "@/lib/payload";
 
-import config from '@/payload.config'
-import './styles.css'
+export const revalidate = REVALIDATE_TIME;
 
 export default async function HomePage() {
-  const headers = await getHeaders()
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-  const { user } = await payload.auth({ headers })
+  const podcasts = await getPublishedPodcasts();
+  
+  const featuredPodcast = podcasts[0];
+  const remainingPodcasts = podcasts.slice(1);
 
-  const fileURL = `vscode://file/${fileURLToPath(import.meta.url)}`
+  if (!featuredPodcast) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-zinc-500 uppercase font-black tracking-widest">
+          No podcasts available yet
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="home">
-      <div className="content">
-        <picture>
-          <source srcSet="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg" />
-          <Image
-            alt="Payload Logo"
-            height={65}
-            src="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg"
-            width={65}
-          />
-        </picture>
-        {!user && <h1>Welcome to your new project.</h1>}
-        {user && <h1>Welcome back, {user.email}</h1>}
-        <div className="links">
-          <a
-            className="admin"
-            href={payloadConfig.routes.admin}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Go to admin panel
-          </a>
-          <a
-            className="docs"
-            href="https://payloadcms.com/docs"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Documentation
-          </a>
+    <div className="flex flex-col">
+      {/* Hero Section */}
+      <FeaturedHero podcast={featuredPodcast} />
+
+      {/* Main Grid Section */}
+      <div className="max-w-[1400px] mx-auto px-6 py-24 w-full">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 border-b border-white/10 pb-8">
+          <div>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-[0.8] font-display">
+              Latest Releases
+            </h2>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mt-4 ml-1">
+              Exploring the sonic landscape of System 108
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-4xl font-black tracking-tighter opacity-10">
+              {podcasts.length.toString().padStart(3, '0')}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className="footer">
-        <p>Update this page by editing</p>
-        <a className="codeLink" href={fileURL}>
-          <code>app/(frontend)/page.tsx</code>
-        </a>
+
+        <PodcastGrid initialPodcasts={remainingPodcasts} />
       </div>
     </div>
-  )
+  );
 }

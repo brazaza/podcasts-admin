@@ -19,6 +19,11 @@ export const Authors: CollectionConfig = {
       required: true,
     },
     {
+      name: 'birthday',
+      type: 'date',
+      required: false,
+    },
+    {
       name: 'bio',
       type: 'richText',
     },
