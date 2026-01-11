@@ -124,7 +124,14 @@ export async function getPublishedPodcasts(limit = 100): Promise<Podcast[]> {
     depth: 2, // Populate author and media relationships
   })
 
-  return docs.map(mapPayloadPodcast)
+  // Sort with fallback to createdAt to guarantee freshest first
+  const sortedDocs = [...docs].sort((a, b) => {
+    const aDate = new Date(a.publishedAt || a.createdAt).getTime()
+    const bDate = new Date(b.publishedAt || b.createdAt).getTime()
+    return bDate - aDate
+  })
+
+  return sortedDocs.map(mapPayloadPodcast)
 }
 
 /**
