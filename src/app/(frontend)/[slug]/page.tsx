@@ -15,10 +15,10 @@ import {
   getPodcastBySlug, 
   getPublishedPodcasts, 
   getAllPodcastSlugs,
-  REVALIDATE_TIME 
 } from "@/lib/payload";
 
-export const revalidate = REVALIDATE_TIME;
+// ISR: 5 minutes
+export const revalidate = 300;
 
 interface PageProps {
   params: Promise<{ slug: string }>;

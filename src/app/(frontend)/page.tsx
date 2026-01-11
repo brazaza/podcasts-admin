@@ -1,9 +1,9 @@
-import { PodcastCard } from "@/components/podcast-card";
 import { FeaturedHero } from "@/components/featured-hero";
 import { PodcastGrid } from "@/components/podcast-grid";
-import { getPublishedPodcasts, REVALIDATE_TIME } from "@/lib/payload";
+import { getPublishedPodcasts } from "@/lib/payload";
 
-export const revalidate = REVALIDATE_TIME;
+// ISR: 5 minutes
+export const revalidate = 300;
 
 export default async function HomePage() {
   const podcasts = await getPublishedPodcasts();
