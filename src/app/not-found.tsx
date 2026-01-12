@@ -54,10 +54,13 @@ export default function NotFound() {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center pt-20 pb-12 px-6 overflow-x-hidden">
         <div className="flex flex-col items-center text-center space-y-8 max-w-4xl w-full">
-          <div className="w-24 h-24 md:w-32 md:h-32 border border-white/20 rounded-full animate-pulse" />
-          <div className="space-y-3">
-            <div className="h-12 w-64 bg-white/10 rounded animate-pulse" />
-            <div className="h-4 w-96 bg-white/5 rounded animate-pulse" />
+          {/* Minimal loader - just the logo */}
+          <div className="w-24 h-24 md:w-32 md:h-32 opacity-50 animate-pulse">
+             <img 
+              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/project-uploads/f54a7117-225b-4b88-b1af-ec55a82fa2c5/logo-symbol-color-white-version-normal-1768004565285.png?width=8000&height=8000&resize=contain" 
+              alt="Loading..."
+              className="w-full h-full object-contain"
+            />
           </div>
         </div>
       </div>
