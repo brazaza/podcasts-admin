@@ -3,7 +3,7 @@
 import React from "react";
 import type { Podcast } from "@/payload-types";
 import { useAudio } from "@/hooks/use-audio";
-import { podcastToAudioPodcast } from "@/lib/payload-helpers";
+
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -39,7 +39,7 @@ export function PodcastPagePlayer({ podcast }: { podcast: Podcast }) {
     if (isCurrent) {
       togglePlay();
     } else {
-      play(podcastToAudioPodcast(podcast));
+      play(podcast);
     }
   };
 

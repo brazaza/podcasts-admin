@@ -172,42 +172,17 @@ export function getArtistSocialLinks(artist: Artist): ArtistSocialLink[] {
   return links
 }
 
-/**
- * Audio player simplified artist type
- */
-export interface AudioArtist {
-  name: string
-  slug: string
-}
 
-/**
- * Audio player simplified podcast type
- */
-export interface AudioPodcast {
-  id: string
-  number: number
-  slug: string
-  title: string
-  audioFile: string
-  coverImage: string
-  artists: AudioArtist[]
-}
+
+// Simplified podcast type for audio player is now just the Payload Podcast type
+// But we keep the function for compatibility if needed, though it's better to update useAudio to just take Podcast
+
 
 /**
  * Convert Payload Podcast to AudioPodcast for the player
+ * @deprecated The player should now consume the Podcast type directly. This is kept for transition or simplified view.
  */
-export function podcastToAudioPodcast(podcast: Podcast): AudioPodcast {
-  const artists: AudioArtist[] = (podcast.artists ?? [])
-    .filter((a): a is Artist => typeof a === 'object' && a !== null)
-    .map((a) => ({ name: a.name, slug: a.slug }))
-
-  return {
-    id: String(podcast.id),
-    number: podcast.number,
-    slug: podcast.slug,
-    title: podcast.title,
-    audioFile: getAudioUrl(podcast),
-    coverImage: getCoverUrl(podcast),
-    artists,
-  }
+export function podcastToAudioPodcast(podcast: Podcast): Podcast {
+  return podcast
 }
+

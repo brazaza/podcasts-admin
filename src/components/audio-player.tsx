@@ -3,6 +3,8 @@
 import React from 'react'
 import Link from 'next/link'
 import { useAudio } from '@/hooks/use-audio'
+import { getCoverUrl } from '@/lib/payload-helpers'
+import type { Artist } from '@/payload-types'
 import {
   Play,
   Pause,
@@ -51,7 +53,7 @@ export function GlobalPlayer() {
   }
 
   const artistNames =
-    currentPodcast.artists?.map((a: { name: string }) => a.name).join(' b2b ') ?? ''
+    currentPodcast.artists?.filter((a): a is Artist => typeof a === 'object').map((a) => a.name).join(' b2b ') ?? ''
   const podcastLabel = `${currentPodcast.title}${artistNames ? ` — ${artistNames}` : ''}`
 
   return (
@@ -110,7 +112,7 @@ export function GlobalPlayer() {
                     <div className="flex items-center gap-2 md:gap-4 md:w-[200px] lg:w-[350px] shrink-0 min-w-0 flex-1 md:flex-none">
                       <Link href={`/podcast/${currentPodcast.slug}`} className="shrink-0">
                         <img
-                          src={currentPodcast.coverImage ?? ''}
+                          src={getCoverUrl(currentPodcast)}
                           alt={currentPodcast.title}
                           className="w-9 h-9 md:w-12 md:h-12 object-cover border border-white/10 hover:opacity-80 transition-opacity"
                         />
@@ -126,11 +128,13 @@ export function GlobalPlayer() {
                           <span className="absolute bottom-0 left-0 w-0 h-px bg-yellow-400 transition-all duration-700 group-hover/title:w-full" />
                         </Link>
                         <div className="flex items-center gap-x-1 overflow-hidden truncate">
-                          {(currentPodcast.artists ?? []).map(
+                        {(currentPodcast.artists ?? [])
+                          .filter((a): a is Artist => typeof a === 'object')
+                          .map(
                             (
-                              a: { name: string; slug: string },
+                              a,
                               i: number,
-                              arr: { name: string; slug: string }[],
+                              arr
                             ) => (
                               <React.Fragment key={a.slug}>
                                 <Link

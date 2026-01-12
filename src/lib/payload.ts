@@ -1,40 +1,10 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import type { Podcast as PayloadPodcast, Artist as PayloadArtist, Image, Audio } from '@/payload-types'
-
-// Frontend display types
-export interface Artist {
-  name: string
-  slug: string
-  bannerImage?: string
-  bio?: string
-  socials?: {
-    yandex_music?: string
-    spotify?: string
-    bandlink?: string
-    bandcamp?: string
-    telegram?: string
-    instagram?: string
-    tiktok?: string
-    vk?: string
-    soundcloud?: string
-  }
-}
-
-export interface Podcast {
-  number: string
-  title: string
-  artists: Artist[]
-  coverImage: string
-  audioFile: string
-  description: string
-  releaseDate: string
-  vkUrl?: string
-  soundcloudUrl?: string
-}
+import type { Podcast, Artist, Image, Audio } from '@/payload-types'
+import { cache } from 'react'
 
 // Re-export types for convenience
-export type { PayloadPodcast, PayloadArtist, Image, Audio }
+export type { Podcast, Artist, Image, Audio }
 
 // ISR revalidation time in seconds (5 minutes)
 export const REVALIDATE_TIME = 300
@@ -42,98 +12,9 @@ export const REVALIDATE_TIME = 300
 /**
  * Get Payload instance (cached per request in Next.js)
  */
-export async function getPayloadClient() {
+export const getPayloadClient = cache(async () => {
   return getPayload({ config })
-}
-
-/**
- * Helper to safely get Image URL
- */
-function getImageUrl(media: number | Image | null | undefined): string {
-  if (!media) return ''
-  if (typeof media === 'number') return ''
-  return media.url || ''
-}
-
-/**
- * Helper to safely get Audio URL
- */
-function getAudioUrl(media: number | Audio | null | undefined): string {
-  if (!media) return ''
-  if (typeof media === 'number') return ''
-  return media.url || ''
-}
-
-/**
- * Convert Payload richText (Lexical) to plain text
- */
-function richTextToPlainText(value: any): string {
-  if (!value || typeof value !== 'object') return ''
-  const root = value.root
-  if (!root || !Array.isArray(root.children)) return ''
-
-  const traverse = (nodes: any[]): string[] => {
-    return nodes.flatMap((node) => {
-      if (node.type === 'text' && typeof node.text === 'string') {
-        return [node.text]
-      }
-        if (Array.isArray(node.children)) {
-        return traverse(node.children)
-      }
-      return []
-    })
-  }
-
-  return traverse(root.children).join(' ').replace(/\s+/g, ' ').trim()
-}
-
-/**
- * Convert Payload Artist to frontend Artist format
- */
-export function mapPayloadArtist(artist: PayloadArtist): Artist {
-  const bannerUrl = getImageUrl(artist.banner_image)
-  
-  return {
-    name: artist.name,
-    slug: artist.slug,
-    bannerImage: bannerUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1600&h=400&fit=crop',
-    bio: richTextToPlainText(artist.bio) || undefined,
-    socials: {
-      yandex_music: artist.yandex_music || undefined,
-      spotify: artist.spotify || undefined,
-      bandlink: artist.bandlink || undefined,
-      bandcamp: artist.bandcamp || undefined,
-      telegram: artist.telegram || undefined,
-      instagram: artist.instagram || undefined,
-      tiktok: artist.tiktok || undefined,
-      vk: artist.vk || undefined,
-    },
-  }
-}
-
-/**
- * Convert Payload Podcast to frontend Podcast format
- */
-export function mapPayloadPodcast(podcast: PayloadPodcast): Podcast {
-  const artists: Artist[] = (podcast.artists ?? [])
-    .filter((a): a is PayloadArtist => typeof a === 'object' && a !== null)
-    .map(mapPayloadArtist)
-
-  const coverUrl = getImageUrl(podcast.cover)
-  const audioUrl = podcast.audio_url || getAudioUrl(podcast.audio)
-
-  return {
-    number: podcast.slug || podcast.id.toString(),
-    title: podcast.title,
-    artists,
-    coverImage: coverUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&h=800&fit=crop',
-    audioFile: audioUrl,
-    description: podcast.description || '',
-    releaseDate: new Date(podcast.release_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-    vkUrl: podcast.mirrors?.vk || undefined,
-    soundcloudUrl: podcast.mirrors?.soundcloud || undefined,
-  }
-}
+})
 
 /**
  * Fetch all published podcasts
@@ -151,14 +32,7 @@ export async function getPublishedPodcasts(limit = 100): Promise<Podcast[]> {
     depth: 2,
   })
 
-  // Sort with fallback to createdAt to guarantee freshest first
-  const sortedDocs = [...docs].sort((a, b) => {
-    const aDate = new Date(a.release_date || a.createdAt).getTime()
-    const bDate = new Date(b.release_date || b.createdAt).getTime()
-    return bDate - aDate
-  })
-
-  return sortedDocs.map(mapPayloadPodcast)
+  return docs
 }
 
 /**
@@ -175,13 +49,14 @@ export async function getPodcastBySlug(slug: string): Promise<Podcast | null> {
         { slug: { equals: slug } },
         { id: { equals: parseInt(slug) || 0 } },
       ],
+      _status: { equals: 'published' }
     },
     depth: 2,
     limit: 1,
   })
 
   if (docs.length === 0) return null
-  return mapPayloadPodcast(docs[0])
+  return docs[0]
 }
 
 /**
@@ -202,7 +77,7 @@ export async function getPodcastsByArtist(artistId: string | number): Promise<Po
     depth: 2,
   })
 
-  return docs.map(mapPayloadPodcast)
+  return docs
 }
 
 /**
@@ -220,19 +95,20 @@ export async function getAllArtists(): Promise<Artist[]> {
     depth: 1,
   })
 
-  return docs.map(mapPayloadArtist)
+  return docs
 }
 
 /**
  * Fetch single artist by slug
  */
-export async function getArtistBySlug(slug: string): Promise<PayloadArtist | null> {
+export async function getArtistBySlug(slug: string): Promise<Artist | null> {
   const payload = await getPayloadClient()
 
   const { docs } = await payload.find({
     collection: 'artists',
     where: {
       slug: { equals: slug },
+      _status: { equals: 'published' }
     },
     limit: 1,
     depth: 1,

@@ -2,19 +2,11 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
 
-// Simplified podcast type for audio player - compatible with Payload Podcast
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface AudioPodcast {
-  id?: string | number
-  number: number | string
-  slug?: string
-  title: string
-  audioFile?: string
-  audio_url?: string | null
-  coverImage?: string
-  cover?: any // Allow any Media type from Payload
-  artists?: any // Allow any artist array from Payload
-}
+// Use Payload types directly
+import type { Podcast, Audio } from '@/payload-types'
+import { isAudioObject } from '@/lib/payload-helpers'
+
+export type AudioPodcast = Podcast
 
 interface AudioContextType {
   currentPodcast: AudioPodcast | null
@@ -41,10 +33,12 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined)
 
 // Helper to get audio URL from podcast
-function getAudioUrl(podcast: AudioPodcast): string {
-  // TODO: take types from payload without type adapters
-  // @ts-ignore
-  return podcast.audio.url
+function getAudioUrl(podcast: Podcast): string {
+  if (podcast.audio && isAudioObject(podcast.audio)) {
+    return podcast.audio.url || ''
+  }
+  // Fallback or legacy support if needed, but user requested audio object priority
+  return ''
 }
 
 export function AudioProvider({

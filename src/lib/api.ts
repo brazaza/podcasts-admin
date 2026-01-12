@@ -3,77 +3,32 @@
  * Used by frontend pages to fetch artists, podcasts, etc.
  */
 
+import type { Artist, Podcast, Config } from '@/payload-types'
+import { PaginatedDocs } from 'payload'
+
 const API_BASE = process.env.NEXT_PUBLIC_SITE_URL || ''
 
-export interface Artist {
-  id: string
-  name: string
-  slug: string
-  is_resident?: boolean
-  bio?: unknown // RichText content
-  banner_image?: MediaItem | string
-  square_image?: MediaItem | string
-  socials?: {
-    telegram?: string
-    soundcloud?: string
-    spotify?: string
-    vk?: string
-    bandcamp?: string
-    instagram?: string
-    yandexMusic?: string
-    bandlink?: string
-  }
-  seo?: SEOData
-  createdAt: string
-  updatedAt: string
-}
+// Re-export Payload types
+export type { Artist, Podcast }
 
-export interface Podcast {
-  id: string
-  number: number
-  title: string
-  slug: string
-  description?: string
-  release_date: string
-  artists?: Artist[]
-  audio_url?: string
-  audio?: MediaItem
-  cover?: MediaItem | string
-  mirrors?: {
-    vk?: string
-    soundcloud?: string
-  }
-  seo?: SEOData
-  createdAt: string
-  updatedAt: string
-}
-
-export interface MediaItem {
-  id: string
-  alt_text: string
-  url: string
-  webp_url?: string
-  blurhash?: string
-  folder?: 'artists' | 'podcasts' | 'audio'
-  mimeType?: string
-  filename?: string
-  width?: number
-  height?: number
-}
-
-export interface SEOData {
-  title?: string
-  description?: string
-  image?: MediaItem | string
-}
-
+// Define Payload's PaginatedDocs type for our use case since we can't easily import the generic
 export interface PaginatedResponse<T> {
   docs: T[]
   totalDocs: number
+  limit: number
   totalPages: number
   page: number
-  hasNextPage: boolean
+  pagingCounter: number
   hasPrevPage: boolean
+  hasNextPage: boolean
+  prevPage: number | null
+  nextPage: number | null
+}
+
+export interface SEOData {
+  title?: string | null
+  description?: string | null
+  image?: string | { url?: string | null } | null
 }
 
 /**
@@ -87,7 +42,7 @@ export async function getArtists(options?: {
   const params = new URLSearchParams()
 
   if (options?.isResident !== undefined) {
-    params.set('is_resident', String(options.isResident))
+    params.set('where[is_resident][equals]', String(options.isResident))
   }
   if (options?.limit) {
     params.set('limit', String(options.limit))
@@ -95,8 +50,11 @@ export async function getArtists(options?: {
   if (options?.page) {
     params.set('page', String(options.page))
   }
+  
+  // Ensure we get published artists
+  params.set('where[_status][equals]', 'published')
 
-  const res = await fetch(`${API_BASE}/api/public/artists?${params}`, {
+  const res = await fetch(`${API_BASE}/api/artists?${params}`, {
     next: { revalidate: 60 },
   })
 
@@ -110,19 +68,26 @@ export async function getArtists(options?: {
 /**
  * Fetch single artist by slug
  */
-export async function getArtist(slug: string): Promise<Artist & { podcasts: Podcast[] }> {
-  const res = await fetch(`${API_BASE}/api/public/artists/${slug}`, {
+export async function getArtist(slug: string): Promise<Artist> {
+  const params = new URLSearchParams()
+  params.set('where[slug][equals]', slug)
+  params.set('where[_status][equals]', 'published')
+  
+  const res = await fetch(`${API_BASE}/api/artists?${params}`, {
     next: { revalidate: 60 },
   })
 
   if (!res.ok) {
-    if (res.status === 404) {
-      throw new Error('Artist not found')
-    }
     throw new Error('Failed to fetch artist')
   }
 
-  return res.json()
+  const data = await res.json()
+  
+  if (!data.docs?.[0]) {
+    throw new Error('Artist not found')
+  }
+
+  return data.docs[0]
 }
 
 /**
@@ -131,7 +96,7 @@ export async function getArtist(slug: string): Promise<Artist & { podcasts: Podc
 export async function getPodcasts(options?: {
   limit?: number
   page?: number
-  artist?: string
+  artist?: number
 }): Promise<PaginatedResponse<Podcast>> {
   const params = new URLSearchParams()
 
@@ -142,10 +107,14 @@ export async function getPodcasts(options?: {
     params.set('page', String(options.page))
   }
   if (options?.artist) {
-    params.set('artist', options.artist)
+    params.set('where[artists][contains]', String(options.artist))
   }
 
-  const res = await fetch(`${API_BASE}/api/public/podcasts?${params}`, {
+  // Ensure published
+  params.set('where[_status][equals]', 'published')
+  params.set('sort', '-release_date')
+
+  const res = await fetch(`${API_BASE}/api/podcasts?${params}`, {
     next: { revalidate: 60 },
   })
 
@@ -160,22 +129,30 @@ export async function getPodcasts(options?: {
  * Fetch single podcast by slug
  */
 export async function getPodcast(slug: string): Promise<Podcast> {
-  const res = await fetch(`${API_BASE}/api/public/podcasts/${slug}`, {
+  const params = new URLSearchParams()
+  params.set('where[slug][equals]', slug)
+  params.set('where[_status][equals]', 'published')
+
+  const res = await fetch(`${API_BASE}/api/podcasts?${params}`, {
     next: { revalidate: 60 },
   })
 
   if (!res.ok) {
-    if (res.status === 404) {
-      throw new Error('Podcast not found')
-    }
     throw new Error('Failed to fetch podcast')
   }
 
-  return res.json()
+  const data = await res.json()
+
+  if (!data.docs?.[0]) {
+    throw new Error('Podcast not found')
+  }
+
+  return data.docs[0]
 }
 
 /**
  * Search artists and podcasts
+ * Note: This likely needs a custom endpoint or multiple queries as Payload REST API doesn't support global search easily
  */
 export async function search(
   query: string,
@@ -186,67 +163,23 @@ export async function search(
   totalArtists: number
   totalPodcasts: number
 }> {
-  const params = new URLSearchParams({ q: query, limit: String(limit) })
+  // Parallel fetch for artists and podcasts
+  const [artistsRes, podcastsRes] = await Promise.all([
+    fetch(`${API_BASE}/api/artists?where[name][like]=${query}&limit=${limit}&where[_status][equals]=published`),
+    fetch(`${API_BASE}/api/podcasts?where[title][like]=${query}&limit=${limit}&where[_status][equals]=published`)
+  ])
 
-  const res = await fetch(`${API_BASE}/api/search?${params}`, {
-    next: { revalidate: 0 },
-  })
-
-  if (!res.ok) {
+  if (!artistsRes.ok || !podcastsRes.ok) {
     throw new Error('Search failed')
   }
 
-  return res.json()
-}
+  const artistsData = await artistsRes.json()
+  const podcastsData = await podcastsRes.json()
 
-/**
- * Get SEO metadata for a path
- */
-export async function getSEO(path: string): Promise<SEOData> {
-  const params = new URLSearchParams({ path })
-
-  const res = await fetch(`${API_BASE}/api/seo?${params}`, {
-    next: { revalidate: 60 },
-  })
-
-  if (!res.ok) {
-    return {
-      title: 'SYSTEM108 PODCAST',
-      description: 'Official podcast platform for System 108.',
-    }
+  return {
+    artists: artistsData.docs,
+    podcasts: podcastsData.docs,
+    totalArtists: artistsData.totalDocs,
+    totalPodcasts: podcastsData.totalDocs
   }
-
-  return res.json()
-}
-
-/**
- * Helper to get image URL from media item or string
- */
-export function getImageUrl(media: MediaItem | string | undefined | null): string | null {
-  if (!media) return null
-  if (typeof media === 'string') return media
-  return media.webp_url || media.url
-}
-
-/**
- * Helper to get audio URL from podcast
- */
-export function getAudioUrl(podcast: Podcast): string | null {
-  if (podcast.audio_url) return podcast.audio_url
-  if (podcast.audio && typeof podcast.audio !== 'string') {
-    return podcast.audio.url
-  }
-  return null
-}
-
-/**
- * Format date for display
- */
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
 }
