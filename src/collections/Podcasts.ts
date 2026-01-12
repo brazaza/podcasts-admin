@@ -111,15 +111,6 @@ export const Podcasts: CollectionConfig = {
       },
     },
     {
-      name: 'duration_seconds',
-      type: 'number',
-      admin: {
-        position: 'sidebar',
-        description: 'Auto-calculated from audio file via ffprobe',
-        readOnly: true,
-      },
-    },
-    {
       name: 'cover',
       type: 'upload',
       relationTo: 'images',

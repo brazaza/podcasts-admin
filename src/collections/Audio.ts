@@ -1,5 +1,19 @@
+import path from 'path'
 import type { CollectionConfig } from 'payload'
-import { audioProcessingHook } from '../hooks/media-processing'
+
+const sanitizeFilename = (input: string): string => {
+  const { name, ext } = path.parse(input)
+  const safeName = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+
+  const safeExt = ext.replace(/[^a-zA-Z0-9.]/g, '')
+  return `${safeName || 'file'}${safeExt || ''}`
+}
 
 export const Audio: CollectionConfig = {
   slug: 'audio',
@@ -11,13 +25,23 @@ export const Audio: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['filename', 'title', 'duration_seconds', 'mimeType', 'updatedAt'],
+    defaultColumns: ['filename', 'title', 'mimeType', 'updatedAt'],
     group: 'Media',
     listSearchableFields: ['title', 'filename'],
   },
   upload: {
     mimeTypes: ['audio/*'],
     staticDir: undefined,
+  },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (data?.filename) {
+          data.filename = sanitizeFilename(data.filename)
+        }
+        return data
+      },
+    ],
   },
   fields: [
     {
@@ -27,16 +51,5 @@ export const Audio: CollectionConfig = {
         placeholder: 'Audio file title (optional)',
       },
     },
-    {
-      name: 'duration_seconds',
-      type: 'number',
-      admin: {
-        readOnly: true,
-        description: 'Duration in seconds (requires ffprobe on server)',
-      },
-    },
   ],
-  hooks: {
-    afterChange: [audioProcessingHook],
-  },
 }

@@ -3,7 +3,7 @@ import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * GET /api/podcasts
+ * GET /api/public/podcasts
  * Fetch all podcasts with pagination
  * Query params:
  * - limit: number - limit results (default: 20)
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config })
     const { searchParams } = new URL(request.url)
-    
+
     const limit = parseInt(searchParams.get('limit') || '20', 10)
     const page = parseInt(searchParams.get('page') || '1', 10)
     const artistSlug = searchParams.get('artist')
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         limit: 1,
         depth: 0,
       })
-      
+
       if (artists.docs.length > 0) {
         where.artists = { contains: artists.docs[0].id }
       }
@@ -58,10 +58,7 @@ export async function GET(request: NextRequest) {
       hasPrevPage: podcasts.hasPrevPage,
     })
   } catch (error) {
-    console.error('[API /podcasts] Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch podcasts' },
-      { status: 500 }
-    )
+    console.error('[API /public/podcasts] Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch podcasts' }, { status: 500 })
   }
 }

@@ -3,13 +3,10 @@ import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * GET /api/podcasts/:slug
+ * GET /api/public/podcasts/:slug
  * Fetch single podcast by slug
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const payload = await getPayload({ config })
     const { slug } = await params
@@ -27,18 +24,12 @@ export async function GET(
     })
 
     if (podcasts.docs.length === 0) {
-      return NextResponse.json(
-        { error: 'Podcast not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Podcast not found' }, { status: 404 })
     }
 
     return NextResponse.json(podcasts.docs[0])
   } catch (error) {
-    console.error('[API /podcasts/:slug] Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch podcast' },
-      { status: 500 }
-    )
+    console.error('[API /public/podcasts/:slug] Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch podcast' }, { status: 500 })
   }
 }

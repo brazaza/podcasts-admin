@@ -205,10 +205,6 @@ export interface Image {
 export interface Audio {
   id: number;
   title?: string | null;
-  /**
-   * Duration in seconds (requires ffprobe on server)
-   */
-  duration_seconds?: number | null;
   prefix?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -325,10 +321,6 @@ export interface Podcast {
    * Upload audio file
    */
   audio?: (number | null) | Audio;
-  /**
-   * Auto-calculated from audio file via ffprobe
-   */
-  duration_seconds?: number | null;
   /**
    * Podcast cover image
    */
@@ -641,7 +633,6 @@ export interface ImagesSelect<T extends boolean = true> {
  */
 export interface AudioSelect<T extends boolean = true> {
   title?: T;
-  duration_seconds?: T;
   prefix?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -705,7 +696,6 @@ export interface PodcastsSelect<T extends boolean = true> {
   artists?: T;
   audio_url?: T;
   audio?: T;
-  duration_seconds?: T;
   cover?: T;
   mirrors?:
     | T

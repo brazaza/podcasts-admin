@@ -3,13 +3,10 @@ import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * GET /api/artists/:slug
+ * GET /api/public/artists/:slug
  * Fetch single artist by slug with related podcasts
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const payload = await getPayload({ config })
     const { slug } = await params
@@ -27,10 +24,7 @@ export async function GET(
     })
 
     if (artists.docs.length === 0) {
-      return NextResponse.json(
-        { error: 'Artist not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Artist not found' }, { status: 404 })
     }
 
     const artist = artists.docs[0]
@@ -53,10 +47,7 @@ export async function GET(
       podcasts: podcasts.docs,
     })
   } catch (error) {
-    console.error('[API /artists/:slug] Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch artist' },
-      { status: 500 }
-    )
+    console.error('[API /public/artists/:slug] Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch artist' }, { status: 500 })
   }
 }

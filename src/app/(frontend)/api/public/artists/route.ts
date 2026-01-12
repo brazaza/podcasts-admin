@@ -4,7 +4,7 @@ import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * GET /api/artists
+ * GET /api/public/artists
  * Fetch all artists with optional filtering
  * Query params:
  * - is_resident: boolean - filter by resident status
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config })
     const { searchParams } = new URL(request.url)
-    
+
     const isResident = searchParams.get('is_resident')
     const limit = parseInt(searchParams.get('limit') || '100', 10)
     const page = parseInt(searchParams.get('page') || '1', 10)
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const where: Where = {
       _status: { equals: 'published' },
     }
-    
+
     if (isResident !== null) {
       where.is_resident = { equals: isResident === 'true' }
     }
@@ -48,10 +48,7 @@ export async function GET(request: NextRequest) {
       hasPrevPage: artists.hasPrevPage,
     })
   } catch (error) {
-    console.error('[API /artists] Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch artists' },
-      { status: 500 }
-    )
+    console.error('[API /public/artists] Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch artists' }, { status: 500 })
   }
 }

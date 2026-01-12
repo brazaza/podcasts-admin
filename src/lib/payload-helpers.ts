@@ -131,7 +131,16 @@ export function getArtistSquareBlurHash(artist: Artist): string | null {
 export interface ArtistSocialLink {
   platform: string
   url: string
-  icon: 'yandex_music' | 'spotify' | 'bandlink' | 'bandcamp' | 'telegram' | 'instagram' | 'tiktok' | 'vk' | 'link'
+  icon:
+    | 'yandex_music'
+    | 'spotify'
+    | 'bandlink'
+    | 'bandcamp'
+    | 'telegram'
+    | 'instagram'
+    | 'tiktok'
+    | 'vk'
+    | 'link'
 }
 
 /**
@@ -140,12 +149,14 @@ export interface ArtistSocialLink {
 export function getArtistSocialLinks(artist: Artist): ArtistSocialLink[] {
   const links: ArtistSocialLink[] = []
 
-  if (artist.yandex_music) links.push({ platform: 'Yandex Music', url: artist.yandex_music, icon: 'yandex_music' })
+  if (artist.yandex_music)
+    links.push({ platform: 'Yandex Music', url: artist.yandex_music, icon: 'yandex_music' })
   if (artist.spotify) links.push({ platform: 'Spotify', url: artist.spotify, icon: 'spotify' })
   if (artist.bandlink) links.push({ platform: 'Bandlink', url: artist.bandlink, icon: 'bandlink' })
   if (artist.bandcamp) links.push({ platform: 'Bandcamp', url: artist.bandcamp, icon: 'bandcamp' })
   if (artist.telegram) links.push({ platform: 'Telegram', url: artist.telegram, icon: 'telegram' })
-  if (artist.instagram) links.push({ platform: 'Instagram', url: artist.instagram, icon: 'instagram' })
+  if (artist.instagram)
+    links.push({ platform: 'Instagram', url: artist.instagram, icon: 'instagram' })
   if (artist.tiktok) links.push({ platform: 'TikTok', url: artist.tiktok, icon: 'tiktok' })
   if (artist.vk) links.push({ platform: 'VK', url: artist.vk, icon: 'vk' })
 
@@ -175,6 +186,7 @@ export interface AudioArtist {
 export interface AudioPodcast {
   id: string
   number: number
+  slug: string
   title: string
   audioFile: string
   coverImage: string
@@ -192,6 +204,7 @@ export function podcastToAudioPodcast(podcast: Podcast): AudioPodcast {
   return {
     id: String(podcast.id),
     number: podcast.number,
+    slug: podcast.slug,
     title: podcast.title,
     audioFile: getAudioUrl(podcast),
     coverImage: getCoverUrl(podcast),

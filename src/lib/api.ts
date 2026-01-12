@@ -38,7 +38,6 @@ export interface Podcast {
   artists?: Artist[]
   audio_url?: string
   audio?: MediaItem
-  duration_seconds?: number
   cover?: MediaItem | string
   mirrors?: {
     vk?: string
@@ -86,7 +85,7 @@ export async function getArtists(options?: {
   page?: number
 }): Promise<PaginatedResponse<Artist>> {
   const params = new URLSearchParams()
-  
+
   if (options?.isResident !== undefined) {
     params.set('is_resident', String(options.isResident))
   }
@@ -97,14 +96,14 @@ export async function getArtists(options?: {
     params.set('page', String(options.page))
   }
 
-  const res = await fetch(`${API_BASE}/api/artists?${params}`, {
+  const res = await fetch(`${API_BASE}/api/public/artists?${params}`, {
     next: { revalidate: 60 },
   })
-  
+
   if (!res.ok) {
     throw new Error('Failed to fetch artists')
   }
-  
+
   return res.json()
 }
 
@@ -112,17 +111,17 @@ export async function getArtists(options?: {
  * Fetch single artist by slug
  */
 export async function getArtist(slug: string): Promise<Artist & { podcasts: Podcast[] }> {
-  const res = await fetch(`${API_BASE}/api/artists/${slug}`, {
+  const res = await fetch(`${API_BASE}/api/public/artists/${slug}`, {
     next: { revalidate: 60 },
   })
-  
+
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error('Artist not found')
     }
     throw new Error('Failed to fetch artist')
   }
-  
+
   return res.json()
 }
 
@@ -135,7 +134,7 @@ export async function getPodcasts(options?: {
   artist?: string
 }): Promise<PaginatedResponse<Podcast>> {
   const params = new URLSearchParams()
-  
+
   if (options?.limit) {
     params.set('limit', String(options.limit))
   }
@@ -146,14 +145,14 @@ export async function getPodcasts(options?: {
     params.set('artist', options.artist)
   }
 
-  const res = await fetch(`${API_BASE}/api/podcasts?${params}`, {
+  const res = await fetch(`${API_BASE}/api/public/podcasts?${params}`, {
     next: { revalidate: 60 },
   })
-  
+
   if (!res.ok) {
     throw new Error('Failed to fetch podcasts')
   }
-  
+
   return res.json()
 }
 
@@ -161,39 +160,42 @@ export async function getPodcasts(options?: {
  * Fetch single podcast by slug
  */
 export async function getPodcast(slug: string): Promise<Podcast> {
-  const res = await fetch(`${API_BASE}/api/podcasts/${slug}`, {
+  const res = await fetch(`${API_BASE}/api/public/podcasts/${slug}`, {
     next: { revalidate: 60 },
   })
-  
+
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error('Podcast not found')
     }
     throw new Error('Failed to fetch podcast')
   }
-  
+
   return res.json()
 }
 
 /**
  * Search artists and podcasts
  */
-export async function search(query: string, limit = 10): Promise<{
+export async function search(
+  query: string,
+  limit = 10,
+): Promise<{
   artists: Artist[]
   podcasts: Podcast[]
   totalArtists: number
   totalPodcasts: number
 }> {
   const params = new URLSearchParams({ q: query, limit: String(limit) })
-  
+
   const res = await fetch(`${API_BASE}/api/search?${params}`, {
     next: { revalidate: 0 },
   })
-  
+
   if (!res.ok) {
     throw new Error('Search failed')
   }
-  
+
   return res.json()
 }
 
@@ -202,18 +204,18 @@ export async function search(query: string, limit = 10): Promise<{
  */
 export async function getSEO(path: string): Promise<SEOData> {
   const params = new URLSearchParams({ path })
-  
+
   const res = await fetch(`${API_BASE}/api/seo?${params}`, {
     next: { revalidate: 60 },
   })
-  
+
   if (!res.ok) {
     return {
       title: 'SYSTEM108 PODCAST',
       description: 'Official podcast platform for System 108.',
     }
   }
-  
+
   return res.json()
 }
 
