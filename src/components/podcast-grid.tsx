@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Podcast } from "@/lib/data";
+import type { Podcast } from "@/payload-types";
 import { PodcastCard } from "./podcast-card";
 import { Spinner } from "./ui/spinner";
 
@@ -45,7 +45,7 @@ export function PodcastGrid({ initialPodcasts }: PodcastGridProps) {
 
   return (
     <div className="space-y-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-2 sm:gap-x-4 md:gap-x-6 gap-y-6 sm:gap-y-10 md:gap-y-12">
           {displayedPodcasts.map((podcast, index) => (
             <PodcastCard 
               key={podcast.number} 

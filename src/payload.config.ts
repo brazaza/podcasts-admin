@@ -1,13 +1,26 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import {
+  lexicalEditor,
+  BoldFeature,
+  ItalicFeature,
+  UnderlineFeature,
+  StrikethroughFeature,
+  HeadingFeature,
+  LinkFeature,
+  OrderedListFeature,
+  UnorderedListFeature,
+  BlockquoteFeature,
+  ParagraphFeature,
+} from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { Authors } from './collections/Authors'
+import { Artists } from './collections/Artists'
 import { Media } from './collections/Media'
+import { Pages } from './collections/Pages'
 import { Podcasts } from './collections/Podcasts'
 import { Users } from './collections/Users'
 
@@ -20,9 +33,31 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    livePreview: {
+      url: process.env.PREVIEW_URL || 'http://localhost:3000',
+      collections: ['artists', 'podcasts', 'pages'],
+      breakpoints: [
+        { label: 'Mobile', name: 'mobile', width: 375, height: 667 },
+        { label: 'Tablet', name: 'tablet', width: 768, height: 1024 },
+        { label: 'Desktop', name: 'desktop', width: 1440, height: 900 },
+      ],
+    },
   },
-  collections: [Users, Media, Authors, Podcasts],
-  editor: lexicalEditor(),
+  collections: [Users, Media, Artists, Podcasts, Pages],
+  editor: lexicalEditor({
+    features: () => [
+      ParagraphFeature(),
+      HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
+      BoldFeature(),
+      ItalicFeature(),
+      UnderlineFeature(),
+      StrikethroughFeature(),
+      LinkFeature(),
+      OrderedListFeature(),
+      UnorderedListFeature(),
+      BlockquoteFeature(),
+    ],
+  }),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
@@ -48,10 +83,9 @@ export default buildConfig({
       disableLocalStorage: true,
       collections: {
         media: {
-          // отдаем прямые ссылки из бакета
           generateFileURL: ({ filename, prefix }) => {
             const base = process.env.S3_PUBLIC_BASE_URL?.trim()
-            if (!base) return filename // fallback — пусть Payload вернёт стандартный путь
+            if (!base) return filename
 
             const url = new URL(base)
             const encode = (part: string) => encodeURIComponent(part).replace(/%2F/g, '/')

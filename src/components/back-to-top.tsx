@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useAudio } from "@/hooks/use-audio";
 
 export function BackToTop() {
   const [isVisible, setIsVisible] = useState(false);
+  const { currentPodcast, isMinimized } = useAudio();
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -37,10 +39,15 @@ export function BackToTop() {
           exit={{ opacity: 0, scale: 0.8 }}
           onClick={scrollToTop}
           className={cn(
-            "fixed bottom-8 right-8 z-50",
+            "fixed right-8 z-50",
             "w-12 h-12 flex items-center justify-center",
             "bg-white text-black border border-white/10",
-            "hover:bg-zinc-200 transition-all active:scale-95"
+            "hover:bg-zinc-200 transition-all active:scale-95",
+            currentPodcast 
+              ? isMinimized 
+                ? "bottom-16" 
+                : "bottom-32 md:bottom-36"
+              : "bottom-8"
           )}
         >
           <ChevronUp className="w-6 h-6" />

@@ -1,10 +1,34 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import type { Podcast as PayloadPodcast, Author as PayloadAuthor, Media } from '@/payload-types'
-import type { Artist, Podcast } from './data'
+import type { Podcast as PayloadPodcast, Artist as PayloadArtist, Media } from '@/payload-types'
+
+// Frontend display types
+export interface Artist {
+  name: string
+  slug: string
+  bannerImage?: string
+  bio?: string
+  socials?: {
+    vk?: string
+    soundcloud?: string
+    instagram?: string
+  }
+}
+
+export interface Podcast {
+  number: string
+  title: string
+  artists: Artist[]
+  coverImage: string
+  audioFile: string
+  description: string
+  releaseDate: string
+  vkUrl?: string
+  soundcloudUrl?: string
+}
 
 // Re-export types for convenience
-export type { PayloadPodcast, PayloadAuthor, Media }
+export type { PayloadPodcast, PayloadArtist, Media }
 
 // ISR revalidation time in seconds (5 minutes)
 export const REVALIDATE_TIME = 300
@@ -28,10 +52,10 @@ function getMediaUrl(media: number | Media | null | undefined): string {
 /**
  * Helper to safely get Media alt text
  */
-function getMediaAlt(media: number | Media | null | undefined): string {
+function _getMediaAlt(media: number | Media | null | undefined): string {
   if (!media) return ''
   if (typeof media === 'number') return ''
-  return media.alt || ''
+  return media.alt_text || ''
 }
 
 /**
@@ -58,22 +82,20 @@ function richTextToPlainText(value: any): string {
 }
 
 /**
- * Convert Payload Author to frontend Artist format
+ * Convert Payload Artist to frontend Artist format
  */
-export function mapAuthorToArtist(author: PayloadAuthor): Artist {
-  const avatarUrl = getMediaUrl(author.avatar)
+export function mapPayloadArtist(artist: PayloadArtist): Artist {
+  const bannerUrl = getMediaUrl(artist.banner_image)
   
   return {
-    name: author.name,
-    slug: author.id.toString(),
-    bannerImage: avatarUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1600&h=400&fit=crop',
-    bio: author.bio?.root?.children
-      ?.map((child: any) => child.children?.map((c: any) => c.text).join('') || '')
-      .join('\n') || undefined,
-    socials: author.socials ? {
-      vk: author.socials.vk || undefined,
-      soundcloud: author.socials.soundcloud || undefined,
-      instagram: author.socials.instagram || undefined,
+    name: artist.name,
+    slug: artist.slug,
+    bannerImage: bannerUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1600&h=400&fit=crop',
+    bio: richTextToPlainText(artist.bio) || undefined,
+    socials: artist.socials && typeof artist.socials === 'object' && !Array.isArray(artist.socials) ? {
+      vk: (artist.socials as Record<string, string>).vk || undefined,
+      soundcloud: (artist.socials as Record<string, string>).soundcloud || undefined,
+      instagram: (artist.socials as Record<string, string>).instagram || undefined,
     } : undefined,
   }
 }
@@ -82,16 +104,12 @@ export function mapAuthorToArtist(author: PayloadAuthor): Artist {
  * Convert Payload Podcast to frontend Podcast format
  */
 export function mapPayloadPodcast(podcast: PayloadPodcast): Podcast {
-  const author = podcast.author
-  const artists: Artist[] = []
-
-  if (author && typeof author !== 'number') {
-    artists.push(mapAuthorToArtist(author))
-  }
+  const artists: Artist[] = (podcast.artists ?? [])
+    .filter((a): a is PayloadArtist => typeof a === 'object' && a !== null)
+    .map(mapPayloadArtist)
 
   const coverUrl = getMediaUrl(podcast.cover)
-  const audioUrl = getMediaUrl(podcast.audio)
-  const bodyText = richTextToPlainText(podcast.body)
+  const audioUrl = podcast.audio_url || getMediaUrl(podcast.audio)
 
   return {
     number: podcast.slug || podcast.id.toString(),
@@ -99,10 +117,8 @@ export function mapPayloadPodcast(podcast: PayloadPodcast): Podcast {
     artists,
     coverImage: coverUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&h=800&fit=crop',
     audioFile: audioUrl,
-    description: bodyText || podcast.description || '',
-    releaseDate: podcast.publishedAt 
-      ? new Date(podcast.publishedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      : new Date(podcast.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    description: podcast.description || '',
+    releaseDate: new Date(podcast.release_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
     vkUrl: podcast.mirrors?.vk || undefined,
     soundcloudUrl: podcast.mirrors?.soundcloud || undefined,
   }
@@ -117,17 +133,17 @@ export async function getPublishedPodcasts(limit = 100): Promise<Podcast[]> {
   const { docs } = await payload.find({
     collection: 'podcasts',
     where: {
-      status: { equals: 'published' },
+      _status: { equals: 'published' },
     },
-    sort: '-publishedAt',
+    sort: '-release_date',
     limit,
-    depth: 2, // Populate author and media relationships
+    depth: 2,
   })
 
   // Sort with fallback to createdAt to guarantee freshest first
   const sortedDocs = [...docs].sort((a, b) => {
-    const aDate = new Date(a.publishedAt || a.createdAt).getTime()
-    const bDate = new Date(b.publishedAt || b.createdAt).getTime()
+    const aDate = new Date(a.release_date || a.createdAt).getTime()
+    const bDate = new Date(b.release_date || b.createdAt).getTime()
     return bDate - aDate
   })
 
@@ -158,20 +174,20 @@ export async function getPodcastBySlug(slug: string): Promise<Podcast | null> {
 }
 
 /**
- * Fetch all podcasts by author
+ * Fetch all podcasts by artist
  */
-export async function getPodcastsByAuthor(authorId: string | number): Promise<Podcast[]> {
+export async function getPodcastsByArtist(artistId: string | number): Promise<Podcast[]> {
   const payload = await getPayloadClient()
 
   const { docs } = await payload.find({
     collection: 'podcasts',
     where: {
       and: [
-        { status: { equals: 'published' } },
-        { author: { equals: typeof authorId === 'string' ? parseInt(authorId) : authorId } },
+        { _status: { equals: 'published' } },
+        { artists: { contains: typeof artistId === 'string' ? parseInt(artistId) : artistId } },
       ],
     },
-    sort: '-publishedAt',
+    sort: '-release_date',
     depth: 2,
   })
 
@@ -179,36 +195,39 @@ export async function getPodcastsByAuthor(authorId: string | number): Promise<Po
 }
 
 /**
- * Fetch all authors
+ * Fetch all artists
  */
-export async function getAllAuthors(): Promise<Artist[]> {
+export async function getAllArtists(): Promise<Artist[]> {
   const payload = await getPayloadClient()
 
   const { docs } = await payload.find({
-    collection: 'authors',
+    collection: 'artists',
+    where: {
+      _status: { equals: 'published' },
+    },
     limit: 100,
     depth: 1,
   })
 
-  return docs.map(mapAuthorToArtist)
+  return docs.map(mapPayloadArtist)
 }
 
 /**
- * Fetch single author by slug (id)
+ * Fetch single artist by slug
  */
-export async function getAuthorBySlug(slug: string): Promise<PayloadAuthor | null> {
+export async function getArtistBySlug(slug: string): Promise<PayloadArtist | null> {
   const payload = await getPayloadClient()
 
-  try {
-    const author = await payload.findByID({
-      collection: 'authors',
-      id: parseInt(slug),
-      depth: 1,
-    })
-    return author
-  } catch {
-    return null
-  }
+  const { docs } = await payload.find({
+    collection: 'artists',
+    where: {
+      slug: { equals: slug },
+    },
+    limit: 1,
+    depth: 1,
+  })
+
+  return docs.length > 0 ? docs[0] : null
 }
 
 /**
@@ -220,7 +239,7 @@ export async function getAllPodcastSlugs(): Promise<string[]> {
   const { docs } = await payload.find({
     collection: 'podcasts',
     where: {
-      status: { equals: 'published' },
+      _status: { equals: 'published' },
     },
     limit: 1000,
     depth: 0,
@@ -230,16 +249,19 @@ export async function getAllPodcastSlugs(): Promise<string[]> {
 }
 
 /**
- * Get all author slugs for static generation
+ * Get all artist slugs for static generation
  */
-export async function getAllAuthorSlugs(): Promise<string[]> {
+export async function getAllArtistSlugs(): Promise<string[]> {
   const payload = await getPayloadClient()
 
   const { docs } = await payload.find({
-    collection: 'authors',
+    collection: 'artists',
+    where: {
+      _status: { equals: 'published' },
+    },
     limit: 1000,
     depth: 0,
   })
 
-  return docs.map(a => a.id.toString())
+  return docs.map(a => a.slug)
 }

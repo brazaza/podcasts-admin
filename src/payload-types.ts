@@ -69,8 +69,9 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
-    authors: Author;
+    artists: Artist;
     podcasts: Podcast;
+    pages: Page;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -80,8 +81,9 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    authors: AuthorsSelect<false> | AuthorsSelect<true>;
+    artists: ArtistsSelect<false> | ArtistsSelect<true>;
     podcasts: PodcastsSelect<false> | PodcastsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -150,8 +152,23 @@ export interface User {
  */
 export interface Media {
   id: number;
-  alt: string;
-  description?: string | null;
+  alt_text: string;
+  /**
+   * S3 folder for organization
+   */
+  folder: 'artists' | 'podcasts' | 'audio';
+  /**
+   * Original uploaded file URL
+   */
+  original_url?: string | null;
+  /**
+   * WebP converted image URL (auto-generated)
+   */
+  webp_url?: string | null;
+  /**
+   * Blurhash placeholder (auto-generated)
+   */
+  blurhash?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -163,15 +180,51 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    banner?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "authors".
+ * via the `definition` "artists".
  */
-export interface Author {
+export interface Artist {
   id: number;
   name: string;
-  birthday?: string | null;
+  /**
+   * URL-friendly identifier (auto-generated from name if empty)
+   */
+  slug: string;
+  /**
+   * Mark as resident artist
+   */
+  is_resident?: boolean | null;
+  /**
+   * Artist biography (supports markdown shortcuts)
+   */
   bio?: {
     root: {
       type: string;
@@ -187,18 +240,52 @@ export interface Author {
     };
     [k: string]: unknown;
   } | null;
-  avatar?: (number | null) | Media;
   /**
-   * Контакты и соцсети (опционально)
+   * Wide banner image for artist page header
    */
-  socials?: {
-    vk?: string | null;
-    soundcloud?: string | null;
-    instagram?: string | null;
-    website?: string | null;
+  banner_image?: (number | null) | Media;
+  /**
+   * Square image for cards and mobile views
+   */
+  square_image?: (number | null) | Media;
+  /**
+   * Social media links (JSON object)
+   */
+  socials?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Additional content sections for extensibility (JSON/blocks)
+   */
+  extra_sections?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * SEO metadata
+   */
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Open Graph image
+     */
+    image?: (number | null) | Media;
   };
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -206,45 +293,172 @@ export interface Author {
  */
 export interface Podcast {
   id: number;
-  title: string;
-  slug?: string | null;
-  type: 'podcast' | 'mixtape';
-  author?: (number | null) | Author;
-  cover?: (number | null) | Media;
-  audio: number | Media;
-  description?: string | null;
   /**
-   * Полный текст выпуска
+   * Podcast episode number
    */
-  body?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  tags?:
-    | {
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
+  number: number;
+  title: string;
+  /**
+   * URL-friendly identifier
+   */
+  slug: string;
+  description?: string | null;
+  release_date: string;
+  /**
+   * Featured artists (supports multiple for b2b)
+   */
+  artists?: (number | Artist)[] | null;
+  /**
+   * Direct audio file URL (or upload via media)
+   */
+  audio_url?: string | null;
+  /**
+   * Upload audio file
+   */
+  audio?: (number | null) | Media;
+  /**
+   * Auto-calculated from audio file via ffprobe
+   */
+  duration_seconds?: number | null;
+  /**
+   * Podcast cover image
+   */
+  cover?: (number | null) | Media;
   mirrors?: {
     vk?: string | null;
     soundcloud?: string | null;
   };
-  status?: ('draft' | 'published') | null;
-  publishedAt?: string | null;
+  /**
+   * SEO metadata
+   */
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Open Graph image
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  /**
+   * URL path (e.g., "about" for /about)
+   */
+  slug: string;
+  /**
+   * Build page layout using blocks
+   */
+  layout?:
+    | (
+        | {
+            heading: string;
+            subheading?: string | null;
+            image?: (number | null) | Media;
+            cta?: {
+              label?: string | null;
+              url?: string | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'hero';
+          }
+        | {
+            content?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'content';
+          }
+        | {
+            heading?: string | null;
+            artists?: (number | Artist)[] | null;
+            showResidentsOnly?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'featured-artists';
+          }
+        | {
+            heading?: string | null;
+            limit?: number | null;
+            /**
+             * Manually select podcasts (leave empty for latest)
+             */
+            podcasts?: (number | Podcast)[] | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'featured-podcasts';
+          }
+        | {
+            /**
+             * Custom JSON data for extensible sections
+             */
+            data?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            /**
+             * Component name to render this section
+             */
+            component?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'custom-section';
+          }
+      )[]
+    | null;
+  /**
+   * Additional custom sections (JSON) for extensibility
+   */
+  extra_sections?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * SEO metadata
+   */
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Open Graph image
+     */
+    image?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -279,12 +493,16 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'authors';
-        value: number | Author;
+        relationTo: 'artists';
+        value: number | Artist;
       } | null)
     | ({
         relationTo: 'podcasts';
         value: number | Podcast;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -355,8 +573,11 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  description?: T;
+  alt_text?: T;
+  folder?: T;
+  original_url?: T;
+  webp_url?: T;
+  blurhash?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -368,56 +589,167 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        banner?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "authors_select".
+ * via the `definition` "artists_select".
  */
-export interface AuthorsSelect<T extends boolean = true> {
+export interface ArtistsSelect<T extends boolean = true> {
   name?: T;
-  birthday?: T;
+  slug?: T;
+  is_resident?: T;
   bio?: T;
-  avatar?: T;
-  socials?:
+  banner_image?: T;
+  square_image?: T;
+  socials?: T;
+  extra_sections?: T;
+  seo?:
     | T
     | {
-        vk?: T;
-        soundcloud?: T;
-        instagram?: T;
-        website?: T;
+        title?: T;
+        description?: T;
+        image?: T;
       };
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "podcasts_select".
  */
 export interface PodcastsSelect<T extends boolean = true> {
+  number?: T;
   title?: T;
   slug?: T;
-  type?: T;
-  author?: T;
-  cover?: T;
-  audio?: T;
   description?: T;
-  body?: T;
-  tags?:
-    | T
-    | {
-        value?: T;
-        id?: T;
-      };
+  release_date?: T;
+  artists?: T;
+  audio_url?: T;
+  audio?: T;
+  duration_seconds?: T;
+  cover?: T;
   mirrors?:
     | T
     | {
         vk?: T;
         soundcloud?: T;
       };
-  status?: T;
-  publishedAt?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  layout?:
+    | T
+    | {
+        hero?:
+          | T
+          | {
+              heading?: T;
+              subheading?: T;
+              image?: T;
+              cta?:
+                | T
+                | {
+                    label?: T;
+                    url?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        content?:
+          | T
+          | {
+              content?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'featured-artists'?:
+          | T
+          | {
+              heading?: T;
+              artists?: T;
+              showResidentsOnly?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'featured-podcasts'?:
+          | T
+          | {
+              heading?: T;
+              limit?: T;
+              podcasts?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'custom-section'?:
+          | T
+          | {
+              data?: T;
+              component?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  extra_sections?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

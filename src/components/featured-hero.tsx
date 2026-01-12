@@ -2,9 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { Podcast } from "@/lib/data";
+import type { Podcast } from "@/payload-types";
 import { ListenNowButton } from "./listen-now-button";
 import { motion } from "framer-motion";
+import { getCoverUrl, formatReleaseDate } from "@/lib/payload-helpers";
+
+import { ShareDropdown } from "./share-dropdown";
 
 const VKIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -19,56 +22,96 @@ const SoundCloudIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 export function FeaturedHero({ podcast }: { podcast: Podcast }) {
+  const titleLength = podcast.title.length;
+  const artists = podcast.artists || [];
+  const artistsLength = artists.reduce((acc: number, a) => {
+    if (typeof a === 'number') return acc;
+    return acc + (a.name?.length || 0);
+  }, 0);
+  const coverUrl = getCoverUrl(podcast, 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&h=800&fit=crop');
+
+  const getTitleSize = () => {
+    const words = podcast.title.split(' ');
+    const longestWord = Math.max(...words.map(w => w.length));
+    
+    if (longestWord >= 12 || titleLength > 25) return "text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl";
+    if (longestWord >= 10 || titleLength > 20) return "text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl";
+    if (longestWord >= 8 || titleLength > 15) return "text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl";
+    if (longestWord >= 7 || titleLength > 12) return "text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-6xl";
+    if (longestWord >= 5) return "text-4xl sm:text-6xl md:text-7xl lg:text-7xl xl:text-7xl";
+    return "text-5xl sm:text-7xl md:text-8xl lg:text-8xl xl:text-8xl";
+  };
+
+  const getArtistSize = () => {
+    if (artistsLength > 40) return "text-base sm:text-lg md:text-xl lg:text-xl xl:text-2xl";
+    if (artistsLength > 25) return "text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl";
+    return "text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl";
+  };
+
   return (
     <div className="relative w-full bg-zinc-950 overflow-hidden border-b border-white/5">
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 min-h-[70vh] items-center">
         {/* Left: Info */}
         <div className="p-8 lg:p-24 space-y-8 z-10 order-2 lg:order-1">
-          <div className="space-y-4">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-4"
-            >
-              <span className="px-3 py-1 bg-white text-black text-[10px] font-black uppercase tracking-tighter">
-                Latest Release
-              </span>
-              <span className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">
-                Podcast #{podcast.number}
-              </span>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Link href={`/${podcast.number}`} className="block group">
-                <h1 className="text-7xl md:text-9xl font-black tracking-tighter uppercase leading-[0.8] font-display group-hover:text-white/80 transition-colors">
-                  {podcast.title}
-                </h1>
-              </Link>
-            </motion.div>
+            <div className="space-y-4">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4"
+              >
+                <span className="px-3 py-1 bg-white text-black text-[10px] font-black uppercase tracking-tighter">
+                  Latest Release
+                </span>
+              </motion.div>
+              
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  >
+                              <Link href={`/podcast/${podcast.number}`} className="block group/title w-fit max-w-full overflow-hidden">
+                                  <h1 className={`${getTitleSize()} font-black tracking-tighter uppercase leading-[0.9] font-display text-yellow-400 transition-colors`}>
+                                    {podcast.title.split(' ').map((word, idx) => (
+                                    <span key={idx} className="block relative w-fit whitespace-nowrap">
+                                      {word}
+                                      <span className="absolute bottom-0 left-0 w-0 h-1 bg-yellow-400 transition-all duration-700 group-hover/title:w-full" />
+                                    </span>
+                                  ))}
+                                </h1>
+                            </Link>
+                  </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1"
+              className="space-y-4"
             >
-              {podcast.artists.map((artist, i) => (
-                <React.Fragment key={artist.slug}>
-                  <Link 
-                    href={`/artist/${artist.slug}`}
-                    className="text-2xl md:text-3xl font-black text-zinc-400 hover:text-white transition-colors uppercase tracking-tighter"
-                  >
-                    {artist.name}
-                  </Link>
-                  {i < podcast.artists.length - 1 && (
-                    <span className="text-xl font-black text-zinc-700 uppercase">b2b</span>
-                  )}
-                </React.Fragment>
-              ))}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                {artists.map((artist, i) => {
+                  if (typeof artist === 'number') return null;
+                  return (
+                    <React.Fragment key={artist.slug}>
+                      <Link 
+                        href={`/artist/${artist.slug}`}
+                        className={`${getArtistSize()} font-black text-yellow-400 transition-colors uppercase tracking-tighter relative group/artist inline-block`}
+                      >
+                        {artist.name}
+                        <span className="absolute bottom-[2px] left-0 w-0 h-1 bg-yellow-400 transition-all duration-700 group-hover/artist:w-full" />
+                      </Link>
+                      {i < artists.length - 1 && (
+                        <span className="text-xl font-black text-white uppercase">b2b</span>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                  Released: {formatReleaseDate(podcast.release_date)}
+                </span>
+              </div>
             </motion.div>
           </div>
 
@@ -81,39 +124,46 @@ export function FeaturedHero({ podcast }: { podcast: Podcast }) {
             <ListenNowButton podcast={podcast} />
             <div className="flex items-center gap-6">
               <a 
-                href={podcast.vkUrl || "#"} 
+                href={podcast.mirrors?.vk || "#"} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-zinc-500 hover:text-white transition-colors"
-                onClick={(e) => !podcast.vkUrl && e.preventDefault()}
+                onClick={(e) => !podcast.mirrors?.vk && e.preventDefault()}
               >
-                <VKIcon />
+                <VKIcon className="w-5 h-5" />
               </a>
               <a 
-                href={podcast.soundcloudUrl || "#"} 
+                href={podcast.mirrors?.soundcloud || "#"} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-zinc-500 hover:text-white transition-colors"
-                onClick={(e) => !podcast.soundcloudUrl && e.preventDefault()}
+                onClick={(e) => !podcast.mirrors?.soundcloud && e.preventDefault()}
               >
-                <SoundCloudIcon />
+                <SoundCloudIcon className="w-5 h-5" />
               </a>
+              <ShareDropdown 
+                path={`/podcast/${podcast.number}`}
+                title={`${podcast.title}`}
+                triggerClassName="text-zinc-500 hover:text-white transition-colors p-0 h-auto w-auto"
+                iconClassName="w-5 h-5"
+              />
             </div>
           </motion.div>
         </div>
 
         {/* Right: Large Square Image */}
         <div className="relative aspect-square order-1 lg:order-2 lg:h-full lg:aspect-auto overflow-hidden">
-          <Link href={`/${podcast.number}`} className="block h-full">
-            <motion.img 
-              initial={{ scale: 1.1, opacity: 0 }}
-              animate={{ scale: 1, opacity: 0.8 }}
-              transition={{ duration: 1.5 }}
-              src={podcast.coverImage} 
-              alt={podcast.title} 
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-            />
-          </Link>
+            <Link href={`/podcast/${podcast.number}`} className="block h-full">
+              <motion.img 
+                initial={{ scale: 1.1, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 1.5 }}
+                src={coverUrl} 
+                alt={podcast.title} 
+                className="w-full h-full object-cover transition-all duration-1000"
+              />
+            </Link>
+
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-transparent to-transparent lg:block hidden pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent lg:hidden block pointer-events-none" />
         </div>
