@@ -42,7 +42,6 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined)
 
 // Helper to get audio URL from podcast
 function getAudioUrl(podcast: AudioPodcast): string {
-  console.log('getAudioUrl', podcast)
   // TODO: take types from payload without type adapters
   // @ts-ignore
   return podcast.audio.url
