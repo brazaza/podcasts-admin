@@ -1,12 +1,6 @@
 import type { Metadata, Viewport } from 'next'
+import { LayoutWrapper } from '@/components/layout-wrapper'
 import './globals.css'
-import ErrorReporter from '@/components/ErrorReporter'
-import { AudioProvider } from '@/hooks/use-audio'
-import { GlobalPlayer } from '@/components/audio-player'
-import { Header } from '@/components/header'
-import { Footer } from '@/components/footer'
-import { Toaster } from '@/components/ui/sonner'
-import { BackToTop } from '@/components/back-to-top'
 
 export const metadata: Metadata = {
   title: 'SYSTEM108 PODCAST',
@@ -30,21 +24,5 @@ export default function FrontendLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return (
-    <html lang="en" className="dark">
-      <body className="antialiased bg-background text-foreground min-h-screen">
-        <ErrorReporter />
-        <AudioProvider podcasts={[]}>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-            <GlobalPlayer />
-          </div>
-          <BackToTop />
-          <Toaster position="top-center" />
-        </AudioProvider>
-      </body>
-    </html>
-  )
+  return <LayoutWrapper>{children}</LayoutWrapper>
 }
