@@ -105,12 +105,9 @@ export const Podcasts: CollectionConfig = {
     {
       name: 'audio',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: 'audio',
       admin: {
         description: 'Upload audio file',
-      },
-      filterOptions: {
-        mimeType: { contains: 'audio' },
       },
     },
     {
@@ -125,12 +122,9 @@ export const Podcasts: CollectionConfig = {
     {
       name: 'cover',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: 'images',
       admin: {
         description: 'Podcast cover image',
-      },
-      filterOptions: {
-        mimeType: { contains: 'image' },
       },
     },
     {
@@ -174,7 +168,7 @@ export const Podcasts: CollectionConfig = {
         {
           name: 'image',
           type: 'upload',
-          relationTo: 'media',
+          relationTo: 'images',
           admin: {
             description: 'Open Graph image',
           },

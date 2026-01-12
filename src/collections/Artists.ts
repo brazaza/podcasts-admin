@@ -7,7 +7,20 @@ export const Artists: CollectionConfig = {
   slug: 'artists',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'slug', 'is_resident', 'updatedAt'],
+    defaultColumns: [
+      'name',
+      'slug',
+      'is_resident',
+      'yandex_music',
+      'spotify',
+      'bandlink',
+      'bandcamp',
+      'telegram',
+      'instagram',
+      'tiktok',
+      'vk',
+      'updatedAt',
+    ],
     group: 'Content',
     livePreview: {
       url: ({ data }) =>
@@ -79,7 +92,7 @@ export const Artists: CollectionConfig = {
     {
       name: 'banner_image',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: 'images',
       admin: {
         description: 'Wide banner image for artist page header',
       },
@@ -87,26 +100,110 @@ export const Artists: CollectionConfig = {
     {
       name: 'square_image',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: 'images',
       admin: {
         description: 'Square image for cards and mobile views',
       },
     },
+    // Social media links - each as a separate column
     {
-      name: 'socials',
-      type: 'json',
+      type: 'collapsible',
+      label: 'Social Media Links',
       admin: {
-        description: 'Social media links (JSON object)',
+        initCollapsed: false,
       },
-      defaultValue: {},
-    },
-    {
-      name: 'extra_sections',
-      type: 'json',
-      admin: {
-        description: 'Additional content sections for extensibility (JSON/blocks)',
-      },
-      defaultValue: [],
+      fields: [
+        {
+          name: 'yandex_music',
+          label: 'Yandex Music',
+          type: 'text',
+          admin: {
+            placeholder: 'https://music.yandex.ru/artist/...',
+          },
+        },
+        {
+          name: 'spotify',
+          label: 'Spotify',
+          type: 'text',
+          admin: {
+            placeholder: 'https://open.spotify.com/artist/...',
+          },
+        },
+        {
+          name: 'bandlink',
+          label: 'Bandlink',
+          type: 'text',
+          admin: {
+            placeholder: 'https://band.link/...',
+          },
+        },
+        {
+          name: 'bandcamp',
+          label: 'Bandcamp',
+          type: 'text',
+          admin: {
+            placeholder: 'https://....bandcamp.com',
+          },
+        },
+        {
+          name: 'telegram',
+          label: 'Telegram',
+          type: 'text',
+          admin: {
+            placeholder: 'https://t.me/...',
+          },
+        },
+        {
+          name: 'instagram',
+          label: 'Instagram',
+          type: 'text',
+          admin: {
+            placeholder: 'https://instagram.com/...',
+          },
+        },
+        {
+          name: 'tiktok',
+          label: 'TikTok',
+          type: 'text',
+          admin: {
+            placeholder: 'https://tiktok.com/@...',
+          },
+        },
+        {
+          name: 'vk',
+          label: 'VK',
+          type: 'text',
+          admin: {
+            placeholder: 'https://vk.com/...',
+          },
+        },
+        {
+          name: 'extra_links',
+          label: 'Extra Links',
+          type: 'array',
+          admin: {
+            description: 'Additional links displayed with a generic link icon',
+          },
+          fields: [
+            {
+              name: 'label',
+              type: 'text',
+              required: true,
+              admin: {
+                placeholder: 'Link label',
+              },
+            },
+            {
+              name: 'url',
+              type: 'text',
+              required: true,
+              admin: {
+                placeholder: 'https://...',
+              },
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'seo',
@@ -132,7 +229,7 @@ export const Artists: CollectionConfig = {
         {
           name: 'image',
           type: 'upload',
-          relationTo: 'media',
+          relationTo: 'images',
           admin: {
             description: 'Open Graph image',
           },

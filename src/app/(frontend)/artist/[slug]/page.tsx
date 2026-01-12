@@ -4,8 +4,26 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PodcastCard } from "@/components/podcast-card";
 import { Metadata } from "next";
-import { FaVk, FaSoundcloud, FaInstagram, FaSpotify, FaTelegramPlane, FaBandcamp } from "react-icons/fa";
+import type React from "react";
+import { FaVk, FaInstagram, FaSpotify, FaTelegramPlane, FaTiktok, FaLink, FaMusic } from "react-icons/fa";
+import { SiBandcamp } from "react-icons/si";
 import { ShareDropdown } from "@/components/share-dropdown";
+import { getArtistSocialLinks, type ArtistSocialLink } from "@/lib/payload-helpers";
+
+function getSocialIcon(icon: ArtistSocialLink['icon']) {
+  const icons: Record<ArtistSocialLink['icon'], React.ComponentType<{ size?: number; className?: string }>> = {
+    yandex_music: FaMusic,
+    spotify: FaSpotify,
+    bandlink: FaLink,
+    bandcamp: SiBandcamp,
+    telegram: FaTelegramPlane,
+    instagram: FaInstagram,
+    tiktok: FaTiktok,
+    vk: FaVk,
+    link: FaLink,
+  }
+  return icons[icon] || FaLink
+}
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -71,8 +89,8 @@ export default async function ArtistPage({ params }: PageProps) {
 
   const artistPodcasts = podcastResult.docs
   
-  // Get socials from JSON field
-  const socials = (artist.socials as Record<string, string> | null) || {}
+  // Get social links using new structure
+  const socialLinks = getArtistSocialLinks(artist)
   
   // Get image URLs
   const bannerUrl = typeof artist.banner_image === 'object' && artist.banner_image?.url 
@@ -142,43 +160,28 @@ export default async function ArtistPage({ params }: PageProps) {
               {/* Socials Block */}
               <div className="flex flex-wrap gap-2 md:gap-4 lg:justify-end pb-2">
                   <div className="flex flex-wrap gap-2 md:gap-3">
-                    {socials.telegram && (
-                      <a href={socials.telegram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0">
-                        <FaTelegramPlane size={18} className="md:w-5 md:h-5" />
-                      </a>
-                    )}
-                    {socials.soundcloud && (
-                      <a href={socials.soundcloud} target="_blank" rel="noopener noreferrer" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0">
-                        <FaSoundcloud size={18} className="md:w-5 md:h-5" />
-                      </a>
-                    )}
-                    {socials.spotify && (
-                      <a href={socials.spotify} target="_blank" rel="noopener noreferrer" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0">
-                        <FaSpotify size={18} className="md:w-5 md:h-5" />
-                      </a>
-                    )}
-                    {socials.vk && (
-                      <a href={socials.vk} target="_blank" rel="noopener noreferrer" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0">
-                        <FaVk size={18} className="md:w-5 md:h-5" />
-                      </a>
-                    )}
-                    {socials.bandcamp && (
-                      <a href={socials.bandcamp} target="_blank" rel="noopener noreferrer" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0">
-                        <FaBandcamp size={18} className="md:w-5 md:h-5" />
-                      </a>
-                    )}
-                    {socials.instagram && (
-                      <a href={socials.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0">
-                        <FaInstagram size={18} className="md:w-5 md:h-5" />
-                      </a>
-                    )}
-                        <ShareDropdown 
-                          path={`/artist/${artist.slug}`}
-                          title={`Listen to ${artist.name} on SYSTEM108`}
-                          triggerClassName="w-10 h-10 md:w-12 md:h-12 bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all"
-                          iconClassName="w-[18px] h-[18px] md:w-5 md:h-5"
-                          invertOnOpen={true}
-                        />
+                    {socialLinks.map((link) => {
+                      const IconComponent = getSocialIcon(link.icon)
+                      return (
+                        <a 
+                          key={link.url} 
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black transition-all border border-white/10 shrink-0"
+                          title={link.platform}
+                        >
+                          <IconComponent size={18} className="md:w-5 md:h-5" />
+                        </a>
+                      )
+                    })}
+                    <ShareDropdown 
+                      path={`/artist/${artist.slug}`}
+                      title={`Listen to ${artist.name} on SYSTEM108`}
+                      triggerClassName="w-10 h-10 md:w-12 md:h-12 bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all"
+                      iconClassName="w-[18px] h-[18px] md:w-5 md:h-5"
+                      invertOnOpen={true}
+                    />
                   </div>
                 </div>
               </div>

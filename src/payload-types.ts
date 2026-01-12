@@ -68,7 +68,8 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
-    media: Media;
+    images: Image;
+    audio: Audio;
     artists: Artist;
     podcasts: Podcast;
     pages: Page;
@@ -80,7 +81,8 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
+    images: ImagesSelect<false> | ImagesSelect<true>;
+    audio: AudioSelect<false> | AudioSelect<true>;
     artists: ArtistsSelect<false> | ArtistsSelect<true>;
     podcasts: PodcastsSelect<false> | PodcastsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
@@ -148,27 +150,16 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
+ * via the `definition` "images".
  */
-export interface Media {
+export interface Image {
   id: number;
-  alt_text: string;
+  alt: string;
   /**
-   * S3 folder for organization
+   * BlurHash placeholder (auto-generated)
    */
-  folder: 'artists' | 'podcasts' | 'audio';
-  /**
-   * Original uploaded file URL
-   */
-  original_url?: string | null;
-  /**
-   * WebP converted image URL (auto-generated)
-   */
-  webp_url?: string | null;
-  /**
-   * Blurhash placeholder (auto-generated)
-   */
-  blurhash?: string | null;
+  blurHash?: string | null;
+  prefix?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -209,6 +200,30 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audio".
+ */
+export interface Audio {
+  id: number;
+  title?: string | null;
+  /**
+   * Duration in seconds (requires ffprobe on server)
+   */
+  duration_seconds?: number | null;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "artists".
  */
 export interface Artist {
@@ -243,34 +258,28 @@ export interface Artist {
   /**
    * Wide banner image for artist page header
    */
-  banner_image?: (number | null) | Media;
+  banner_image?: (number | null) | Image;
   /**
    * Square image for cards and mobile views
    */
-  square_image?: (number | null) | Media;
+  square_image?: (number | null) | Image;
+  yandex_music?: string | null;
+  spotify?: string | null;
+  bandlink?: string | null;
+  bandcamp?: string | null;
+  telegram?: string | null;
+  instagram?: string | null;
+  tiktok?: string | null;
+  vk?: string | null;
   /**
-   * Social media links (JSON object)
+   * Additional links displayed with a generic link icon
    */
-  socials?:
+  extra_links?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Additional content sections for extensibility (JSON/blocks)
-   */
-  extra_sections?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
     | null;
   /**
    * SEO metadata
@@ -281,7 +290,7 @@ export interface Artist {
     /**
      * Open Graph image
      */
-    image?: (number | null) | Media;
+    image?: (number | null) | Image;
   };
   updatedAt: string;
   createdAt: string;
@@ -315,7 +324,7 @@ export interface Podcast {
   /**
    * Upload audio file
    */
-  audio?: (number | null) | Media;
+  audio?: (number | null) | Audio;
   /**
    * Auto-calculated from audio file via ffprobe
    */
@@ -323,7 +332,7 @@ export interface Podcast {
   /**
    * Podcast cover image
    */
-  cover?: (number | null) | Media;
+  cover?: (number | null) | Image;
   mirrors?: {
     vk?: string | null;
     soundcloud?: string | null;
@@ -337,7 +346,7 @@ export interface Podcast {
     /**
      * Open Graph image
      */
-    image?: (number | null) | Media;
+    image?: (number | null) | Image;
   };
   updatedAt: string;
   createdAt: string;
@@ -362,7 +371,7 @@ export interface Page {
         | {
             heading: string;
             subheading?: string | null;
-            image?: (number | null) | Media;
+            image?: (number | null) | Image;
             cta?: {
               label?: string | null;
               url?: string | null;
@@ -454,7 +463,7 @@ export interface Page {
     /**
      * Open Graph image
      */
-    image?: (number | null) | Media;
+    image?: (number | null) | Image;
   };
   updatedAt: string;
   createdAt: string;
@@ -489,8 +498,12 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
-        relationTo: 'media';
-        value: number | Media;
+        relationTo: 'images';
+        value: number | Image;
+      } | null)
+    | ({
+        relationTo: 'audio';
+        value: number | Audio;
       } | null)
     | ({
         relationTo: 'artists';
@@ -570,14 +583,12 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
+ * via the `definition` "images_select".
  */
-export interface MediaSelect<T extends boolean = true> {
-  alt_text?: T;
-  folder?: T;
-  original_url?: T;
-  webp_url?: T;
-  blurhash?: T;
+export interface ImagesSelect<T extends boolean = true> {
+  alt?: T;
+  blurHash?: T;
+  prefix?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -626,6 +637,26 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audio_select".
+ */
+export interface AudioSelect<T extends boolean = true> {
+  title?: T;
+  duration_seconds?: T;
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "artists_select".
  */
 export interface ArtistsSelect<T extends boolean = true> {
@@ -635,8 +666,21 @@ export interface ArtistsSelect<T extends boolean = true> {
   bio?: T;
   banner_image?: T;
   square_image?: T;
-  socials?: T;
-  extra_sections?: T;
+  yandex_music?: T;
+  spotify?: T;
+  bandlink?: T;
+  bandcamp?: T;
+  telegram?: T;
+  instagram?: T;
+  tiktok?: T;
+  vk?: T;
+  extra_links?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
   seo?:
     | T
     | {

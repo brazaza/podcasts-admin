@@ -19,7 +19,8 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Artists } from './collections/Artists'
-import { Media } from './collections/Media'
+import { Audio } from './collections/Audio'
+import { Images } from './collections/Images'
 import { Pages } from './collections/Pages'
 import { Podcasts } from './collections/Podcasts'
 import { Users } from './collections/Users'
@@ -43,7 +44,7 @@ export default buildConfig({
       ],
     },
   },
-  collections: [Users, Media, Artists, Podcasts, Pages],
+  collections: [Users, Images, Audio, Artists, Podcasts, Pages],
   editor: lexicalEditor({
     features: () => [
       ParagraphFeature(),
@@ -82,7 +83,24 @@ export default buildConfig({
       },
       disableLocalStorage: true,
       collections: {
-        media: {
+        images: {
+          prefix: 'images',
+          generateFileURL: ({ filename, prefix }) => {
+            const base = process.env.S3_PUBLIC_BASE_URL?.trim()
+            if (!base) return filename
+
+            const url = new URL(base)
+            const encode = (part: string) => encodeURIComponent(part).replace(/%2F/g, '/')
+            const basePath = url.pathname.replace(/\/$/, '')
+            const parts = [basePath, prefix, filename]
+              .filter(Boolean)
+              .map((part) => encode(String(part)))
+            url.pathname = parts.join('/')
+            return url.toString()
+          },
+        },
+        audio: {
+          prefix: 'audio',
           generateFileURL: ({ filename, prefix }) => {
             const base = process.env.S3_PUBLIC_BASE_URL?.trim()
             if (!base) return filename

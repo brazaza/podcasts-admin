@@ -1,6 +1,6 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import type { Podcast as PayloadPodcast, Artist as PayloadArtist, Media } from '@/payload-types'
+import type { Podcast as PayloadPodcast, Artist as PayloadArtist, Image, Audio } from '@/payload-types'
 
 // Frontend display types
 export interface Artist {
@@ -9,9 +9,15 @@ export interface Artist {
   bannerImage?: string
   bio?: string
   socials?: {
+    yandex_music?: string
+    spotify?: string
+    bandlink?: string
+    bandcamp?: string
+    telegram?: string
+    instagram?: string
+    tiktok?: string
     vk?: string
     soundcloud?: string
-    instagram?: string
   }
 }
 
@@ -28,7 +34,7 @@ export interface Podcast {
 }
 
 // Re-export types for convenience
-export type { PayloadPodcast, PayloadArtist, Media }
+export type { PayloadPodcast, PayloadArtist, Image, Audio }
 
 // ISR revalidation time in seconds (5 minutes)
 export const REVALIDATE_TIME = 300
@@ -41,21 +47,21 @@ export async function getPayloadClient() {
 }
 
 /**
- * Helper to safely get Media URL
+ * Helper to safely get Image URL
  */
-function getMediaUrl(media: number | Media | null | undefined): string {
+function getImageUrl(media: number | Image | null | undefined): string {
   if (!media) return ''
   if (typeof media === 'number') return ''
   return media.url || ''
 }
 
 /**
- * Helper to safely get Media alt text
+ * Helper to safely get Audio URL
  */
-function _getMediaAlt(media: number | Media | null | undefined): string {
+function getAudioUrl(media: number | Audio | null | undefined): string {
   if (!media) return ''
   if (typeof media === 'number') return ''
-  return media.alt_text || ''
+  return media.url || ''
 }
 
 /**
@@ -85,18 +91,23 @@ function richTextToPlainText(value: any): string {
  * Convert Payload Artist to frontend Artist format
  */
 export function mapPayloadArtist(artist: PayloadArtist): Artist {
-  const bannerUrl = getMediaUrl(artist.banner_image)
+  const bannerUrl = getImageUrl(artist.banner_image)
   
   return {
     name: artist.name,
     slug: artist.slug,
     bannerImage: bannerUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1600&h=400&fit=crop',
     bio: richTextToPlainText(artist.bio) || undefined,
-    socials: artist.socials && typeof artist.socials === 'object' && !Array.isArray(artist.socials) ? {
-      vk: (artist.socials as Record<string, string>).vk || undefined,
-      soundcloud: (artist.socials as Record<string, string>).soundcloud || undefined,
-      instagram: (artist.socials as Record<string, string>).instagram || undefined,
-    } : undefined,
+    socials: {
+      yandex_music: artist.yandex_music || undefined,
+      spotify: artist.spotify || undefined,
+      bandlink: artist.bandlink || undefined,
+      bandcamp: artist.bandcamp || undefined,
+      telegram: artist.telegram || undefined,
+      instagram: artist.instagram || undefined,
+      tiktok: artist.tiktok || undefined,
+      vk: artist.vk || undefined,
+    },
   }
 }
 
@@ -108,8 +119,8 @@ export function mapPayloadPodcast(podcast: PayloadPodcast): Podcast {
     .filter((a): a is PayloadArtist => typeof a === 'object' && a !== null)
     .map(mapPayloadArtist)
 
-  const coverUrl = getMediaUrl(podcast.cover)
-  const audioUrl = podcast.audio_url || getMediaUrl(podcast.audio)
+  const coverUrl = getImageUrl(podcast.cover)
+  const audioUrl = podcast.audio_url || getAudioUrl(podcast.audio)
 
   return {
     number: podcast.slug || podcast.id.toString(),

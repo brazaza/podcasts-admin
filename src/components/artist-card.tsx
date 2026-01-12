@@ -3,12 +3,13 @@
 import React from "react";
 import Link from "next/link";
 import type { Artist } from "@/payload-types";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { getArtistSquareUrl } from "@/lib/payload-helpers";
+import { getArtistSquareUrl, getArtistSquareBlurHash } from "@/lib/payload-helpers";
+import { BlurHashImage } from "@/components/blurhash-image";
 
 export function ArtistCard({ artist }: { artist: Artist }) {
   const imageUrl = getArtistSquareUrl(artist, 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&h=800&fit=crop')
+  const blurHash = getArtistSquareBlurHash(artist)
   
   return (
     <div className={cn(
@@ -18,11 +19,13 @@ export function ArtistCard({ artist }: { artist: Artist }) {
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden block">
         <Link href={`/artist/${artist.slug}`}>
-          <motion.img 
-            src={imageUrl} 
-            alt={artist.name} 
-            className={cn(
-              "w-full h-full object-cover transition-all duration-700",
+          <BlurHashImage
+            src={imageUrl}
+            alt={artist.name}
+            blurHash={blurHash}
+            className="w-full h-full"
+            imgClassName={cn(
+              "transition-all duration-700",
               "md:grayscale md:group-hover:grayscale-0 md:group-hover:scale-110"
             )}
           />

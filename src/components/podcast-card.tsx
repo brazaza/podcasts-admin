@@ -5,11 +5,11 @@ import Link from "next/link";
 import type { Podcast, Artist } from "@/payload-types";
 import { useAudio } from "@/hooks/use-audio";
 import { Play, Pause, MoreHorizontal } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ShareDropdown } from "@/components/share-dropdown";
-import { getCoverUrl, formatReleaseDate } from "@/lib/payload-helpers";
+import { getCoverUrl, getCoverBlurHash, formatReleaseDate } from "@/lib/payload-helpers";
+import { BlurHashImage } from "@/components/blurhash-image";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,7 @@ export function PodcastCard({ podcast, isLatest: _isLatest = false }: { podcast:
   const isCurrentlyPlaying = currentPodcast?.number === podcast.number && isPlaying;
   
   const coverUrl = getCoverUrl(podcast, 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop');
+  const blurHash = getCoverBlurHash(podcast);
   const artists = (podcast.artists || []).filter((a): a is Artist => typeof a !== 'number');
 
   return (
@@ -47,11 +48,13 @@ export function PodcastCard({ podcast, isLatest: _isLatest = false }: { podcast:
       {/* Image Container */}
         <div className="relative aspect-square overflow-hidden block">
           <Link href={`/podcast/${podcast.slug}`}>
-            <motion.img 
-              src={coverUrl} 
-              alt={podcast.title} 
-              className={cn(
-                "w-full h-full object-cover transition-all duration-700",
+            <BlurHashImage
+              src={coverUrl}
+              alt={podcast.title}
+              blurHash={blurHash}
+              className="w-full h-full"
+              imgClassName={cn(
+                "transition-all duration-700",
                 isMenuOpen 
                   ? "grayscale-0 scale-110" 
                   : "md:grayscale md:group-hover:grayscale-0 md:group-hover:scale-110"

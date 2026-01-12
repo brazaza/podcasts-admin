@@ -19,7 +19,7 @@ const HeroBlock: Block = {
     {
       name: 'image',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: 'images',
     },
     {
       name: 'cta',
@@ -215,7 +215,7 @@ export const Pages: CollectionConfig = {
         {
           name: 'image',
           type: 'upload',
-          relationTo: 'media',
+          relationTo: 'images',
           admin: {
             description: 'Open Graph image',
           },

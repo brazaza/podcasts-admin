@@ -2,20 +2,33 @@
  * Helper utilities for working with Payload CMS data on the frontend
  */
 
-import type { Artist, Podcast, Media } from '@/payload-types'
+import type { Artist, Podcast, Image, Audio } from '@/payload-types'
 
-// Type guard for Media object
-export function isMediaObject(value: unknown): value is Media {
+// Type guard for Image object
+export function isImageObject(value: unknown): value is Image {
+  return typeof value === 'object' && value !== null && 'url' in value
+}
+
+// Type guard for Audio object
+export function isAudioObject(value: unknown): value is Audio {
   return typeof value === 'object' && value !== null && 'url' in value
 }
 
 /**
- * Get URL from a Media field (which can be a string ID or Media object)
+ * Get URL from an Image field (which can be a string ID or Image object)
  */
-export function getImageUrl(media: string | Media | null | undefined, fallback = ''): string {
-  if (!media) return fallback
-  if (typeof media === 'string') return media
-  return media.webp_url || media.url || fallback
+export function getImageUrl(image: string | Image | null | undefined, fallback = ''): string {
+  if (!image) return fallback
+  if (typeof image === 'string') return image
+  return image.url || fallback
+}
+
+/**
+ * Get BlurHash from an Image field
+ */
+export function getImageBlurHash(image: string | Image | null | undefined): string | null {
+  if (!image || typeof image === 'string') return null
+  return image.blurHash || null
 }
 
 /**
@@ -23,7 +36,7 @@ export function getImageUrl(media: string | Media | null | undefined, fallback =
  */
 export function getAudioUrl(podcast: Podcast): string {
   if (podcast.audio_url) return podcast.audio_url
-  if (podcast.audio && isMediaObject(podcast.audio)) {
+  if (podcast.audio && isAudioObject(podcast.audio)) {
     return podcast.audio.url || ''
   }
   return ''
@@ -33,10 +46,20 @@ export function getAudioUrl(podcast: Podcast): string {
  * Get cover image URL from a Podcast
  */
 export function getCoverUrl(podcast: Podcast, fallback = ''): string {
-  if (podcast.cover && isMediaObject(podcast.cover)) {
-    return podcast.cover.webp_url || podcast.cover.url || fallback
+  if (podcast.cover && isImageObject(podcast.cover)) {
+    return podcast.cover.url || fallback
   }
   return fallback
+}
+
+/**
+ * Get cover BlurHash from a Podcast
+ */
+export function getCoverBlurHash(podcast: Podcast): string | null {
+  if (podcast.cover && isImageObject(podcast.cover)) {
+    return podcast.cover.blurHash || null
+  }
+  return null
 }
 
 /**
@@ -66,31 +89,76 @@ export function formatReleaseDate(date: string | null | undefined): string {
  * Get banner image URL from an Artist
  */
 export function getArtistBannerUrl(artist: Artist, fallback = ''): string {
-  if (artist.banner_image && isMediaObject(artist.banner_image)) {
-    return artist.banner_image.webp_url || artist.banner_image.url || fallback
+  if (artist.banner_image && isImageObject(artist.banner_image)) {
+    return artist.banner_image.url || fallback
   }
   return fallback
+}
+
+/**
+ * Get banner BlurHash from an Artist
+ */
+export function getArtistBannerBlurHash(artist: Artist): string | null {
+  if (artist.banner_image && isImageObject(artist.banner_image)) {
+    return artist.banner_image.blurHash || null
+  }
+  return null
 }
 
 /**
  * Get square image URL from an Artist
  */
 export function getArtistSquareUrl(artist: Artist, fallback = ''): string {
-  if (artist.square_image && isMediaObject(artist.square_image)) {
-    return artist.square_image.webp_url || artist.square_image.url || fallback
+  if (artist.square_image && isImageObject(artist.square_image)) {
+    return artist.square_image.url || fallback
   }
   return getArtistBannerUrl(artist, fallback)
 }
 
 /**
- * Get socials object from an Artist
+ * Get square image BlurHash from an Artist
  */
-export function getArtistSocials(artist: Artist): Record<string, string> {
-  if (!artist.socials) return {}
-  if (typeof artist.socials === 'object' && !Array.isArray(artist.socials)) {
-    return artist.socials as Record<string, string>
+export function getArtistSquareBlurHash(artist: Artist): string | null {
+  if (artist.square_image && isImageObject(artist.square_image)) {
+    return artist.square_image.blurHash || null
   }
-  return {}
+  return getArtistBannerBlurHash(artist)
+}
+
+/**
+ * Social media link type
+ */
+export interface ArtistSocialLink {
+  platform: string
+  url: string
+  icon: 'yandex_music' | 'spotify' | 'bandlink' | 'bandcamp' | 'telegram' | 'instagram' | 'tiktok' | 'vk' | 'link'
+}
+
+/**
+ * Get all social links from an Artist as an array
+ */
+export function getArtistSocialLinks(artist: Artist): ArtistSocialLink[] {
+  const links: ArtistSocialLink[] = []
+
+  if (artist.yandex_music) links.push({ platform: 'Yandex Music', url: artist.yandex_music, icon: 'yandex_music' })
+  if (artist.spotify) links.push({ platform: 'Spotify', url: artist.spotify, icon: 'spotify' })
+  if (artist.bandlink) links.push({ platform: 'Bandlink', url: artist.bandlink, icon: 'bandlink' })
+  if (artist.bandcamp) links.push({ platform: 'Bandcamp', url: artist.bandcamp, icon: 'bandcamp' })
+  if (artist.telegram) links.push({ platform: 'Telegram', url: artist.telegram, icon: 'telegram' })
+  if (artist.instagram) links.push({ platform: 'Instagram', url: artist.instagram, icon: 'instagram' })
+  if (artist.tiktok) links.push({ platform: 'TikTok', url: artist.tiktok, icon: 'tiktok' })
+  if (artist.vk) links.push({ platform: 'VK', url: artist.vk, icon: 'vk' })
+
+  // Add extra links with generic link icon
+  if (artist.extra_links && Array.isArray(artist.extra_links)) {
+    for (const link of artist.extra_links) {
+      if (link.url && link.label) {
+        links.push({ platform: link.label, url: link.url, icon: 'link' })
+      }
+    }
+  }
+
+  return links
 }
 
 /**
