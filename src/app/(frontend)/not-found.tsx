@@ -2,27 +2,64 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { podcasts, artists } from "@/lib/data";
-import { PodcastSlider } from "@/components/podcast-slider";
 import { motion } from "framer-motion";
+import { getArtists, getPodcasts } from "@/lib/api";
+import type { Artist, Podcast } from "@/lib/api";
+import { PodcastSlider } from "@/components/podcast-slider";
 
 export default function NotFound() {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsFlipped(true), 1000);
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [artistsData, podcastsData] = await Promise.all([
+          getArtists({ limit: 50 }),
+          getPodcasts({ limit: 50 })
+        ]);
+        setArtists(artistsData.docs);
+        setPodcasts(podcastsData.docs);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Get a random artist who has podcasts
   const artistsWithPodcasts = artists.filter(artist => 
-    podcasts.some(p => p.artists.some(a => a.slug === artist.slug))
+    podcasts.some(p => p.artists?.some((a: any) => a.slug === artist.slug))
   );
   
   const randomArtist = artistsWithPodcasts[Math.floor(Math.random() * artistsWithPodcasts.length)] || artists[0];
   const artistPodcasts = podcasts.filter(p => 
-    p.artists.some(a => a.slug === randomArtist.slug)
+    p.artists?.some((a: any) => a.slug === randomArtist?.slug)
   );
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center pt-20 pb-12 px-6 overflow-x-hidden">
+        <div className="flex flex-col items-center text-center space-y-8 max-w-4xl w-full">
+          <div className="w-24 h-24 md:w-32 md:h-32 border border-white/20 rounded-full animate-pulse" />
+          <div className="space-y-3">
+            <div className="h-12 w-64 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-96 bg-white/5 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen items-center justify-center pt-20 pb-12 px-6 overflow-x-hidden">
@@ -45,13 +82,16 @@ export default function NotFound() {
             Page Not Found
           </h1>
           <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] md:text-xs max-w-md mx-auto leading-relaxed">
-            The frequency you&apos;re looking for is out of range, but here are our latest transmissions from <Link 
-              href={`/artist/${randomArtist.slug}`} 
-              className="text-yellow-400 font-black uppercase relative group/artist inline-block"
-            >
-              {randomArtist.name}
-              <span className="absolute bottom-[2px] left-0 w-0 h-[2px] bg-yellow-400 transition-all duration-700 group-hover/artist:w-full" />
-            </Link>
+            The frequency you&apos;re looking for is out of range{randomArtist && `, but here are our latest transmissions from `} 
+            {randomArtist && (
+              <Link 
+                href={`/artist/${randomArtist.slug}`} 
+                className="text-yellow-400 font-black uppercase relative group/artist inline-block"
+              >
+                {randomArtist.name}
+                <span className="absolute bottom-[2px] left-0 w-0 h-[2px] bg-yellow-400 transition-all duration-700 group-hover/artist:w-full" />
+              </Link>
+            )}
           </p>
         </div>
 
@@ -72,18 +112,20 @@ export default function NotFound() {
       </div>
 
       {/* Podcast Slider - Full width matching the podcast page layout */}
-      <div className="max-w-[1400px] mx-auto w-full pt-8 mt-auto border-t border-white/10">
-        <h2 className="text-xl font-black tracking-tighter uppercase mb-6 border-b border-white/10 pb-4">
-          More podcasts by <Link 
-            href={`/artist/${randomArtist.slug}`} 
-            className="text-yellow-400 uppercase relative group/artist inline-block"
-          >
-            {randomArtist.name}
-            <span className="absolute bottom-[1px] left-0 w-0 h-[2px] bg-yellow-400 transition-all duration-700 group-hover/artist:w-full" />
-          </Link>
-        </h2>
-        <PodcastSlider podcasts={artistPodcasts} />
-      </div>
+      {randomArtist && artistPodcasts.length > 0 && (
+        <div className="max-w-[1400px] mx-auto w-full pt-8 mt-auto border-t border-white/10">
+          <h2 className="text-xl font-black tracking-tighter uppercase mb-6 border-b border-white/10 pb-4">
+            More podcasts by <Link 
+              href={`/artist/${randomArtist.slug}`} 
+              className="text-yellow-400 uppercase relative group/artist inline-block"
+            >
+              {randomArtist.name}
+              <span className="absolute bottom-[1px] left-0 w-0 h-[2px] bg-yellow-400 transition-all duration-700 group-hover/artist:w-full" />
+            </Link>
+          </h2>
+          <PodcastSlider podcasts={artistPodcasts} />
+        </div>
+      )}
     </div>
   );
 }
