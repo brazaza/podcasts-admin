@@ -22,8 +22,8 @@ export default function NotFound() {
     const fetchData = async () => {
       try {
         const [artistsData, podcastsData] = await Promise.all([
-          getArtists({ limit: 50 }),
-          getPodcasts({ limit: 50 })
+          getArtists({ limit: 100 }),
+          getPodcasts({ limit: 100 })
         ]);
         setArtists(artistsData.docs);
         setPodcasts(podcastsData.docs);
@@ -42,10 +42,13 @@ export default function NotFound() {
     podcasts.some(p => p.artists?.some((a: any) => a.slug === artist.slug))
   );
   
-  const randomArtist = artistsWithPodcasts[Math.floor(Math.random() * artistsWithPodcasts.length)] || artists[0];
-  const artistPodcasts = podcasts.filter(p => 
-    p.artists?.some((a: any) => a.slug === randomArtist?.slug)
-  );
+  const randomArtist = artistsWithPodcasts.length > 0 
+    ? artistsWithPodcasts[Math.floor(Math.random() * artistsWithPodcasts.length)] 
+    : null;
+
+  const artistPodcasts = randomArtist 
+    ? podcasts.filter(p => p.artists?.some((a: any) => a.slug === randomArtist.slug))
+    : [];
 
   if (loading) {
     return (
@@ -62,7 +65,7 @@ export default function NotFound() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center pt-20 pb-12 px-6 overflow-x-hidden">
+    <div className="flex flex-col min-h-screen items-center pt-20 pb-12 px-6 overflow-x-hidden">
       <div className="flex flex-col items-center text-center space-y-8 max-w-4xl w-full mb-12">
         {/* Animated logo */}
         <div className="relative group cursor-pointer">
@@ -95,20 +98,12 @@ export default function NotFound() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link 
-            href="/"
-            className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors"
-          >
-            Back to Home
-          </Link>
-          <Link 
-            href="/podcasts"
-            className="px-6 py-3 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors"
-          >
-            Browse Podcasts
-          </Link>
-        </div>
+        <Link 
+          href="/"
+          className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+        >
+          Back to Home
+        </Link>
       </div>
 
       {/* Podcast Slider - Full width matching the podcast page layout */}
