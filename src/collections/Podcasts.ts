@@ -1,10 +1,18 @@
-import type { CollectionConfig, CollectionSlug } from 'payload'
+import type { CollectionConfig } from 'payload'
+
+// TODO: Implement RBAC - currently using basic authenticated access
+// Future roles: admin, editor, author
 
 export const Podcasts: CollectionConfig = {
   slug: 'podcasts',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'type', 'author', 'status', 'publishedAt'],
+    defaultColumns: ['number', 'title', 'slug', 'release_date', 'updatedAt'],
+    group: 'Content',
+    livePreview: {
+      url: ({ data }) =>
+        `${process.env.PREVIEW_URL || 'http://localhost:3000'}/podcast/${data.slug}`,
+    },
   },
   access: {
     read: () => true,
@@ -12,14 +20,30 @@ export const Podcasts: CollectionConfig = {
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => Boolean(user),
   },
+  versions: {
+    drafts: {
+      autosave: {
+        interval: 1000,
+      },
+    },
+  },
   fields: [
+    {
+      name: 'number',
+      type: 'number',
+      required: true,
+      unique: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Podcast episode number',
+      },
+    },
     {
       name: 'title',
       type: 'text',
       required: true,
-      defaultValue: 'Новый подкаст/микстейп',
       admin: {
-        placeholder: 'Введите название выпуска',
+        placeholder: 'Podcast title',
       },
     },
     {
@@ -27,77 +51,96 @@ export const Podcasts: CollectionConfig = {
       type: 'text',
       unique: true,
       index: true,
+      required: true,
       admin: {
-        placeholder: 'Опционально, если не заполнить — можно сгенерировать отдельно',
+        position: 'sidebar',
+        description: 'URL-friendly identifier',
       },
-    },
-    {
-      name: 'type',
-      type: 'select',
-      required: true,
-      defaultValue: 'podcast',
-      options: [
-        { label: 'Podcast', value: 'podcast' },
-        { label: 'Mixtape', value: 'mixtape' },
-      ],
-    },
-    {
-      name: 'author',
-      type: 'relationship',
-      relationTo: 'authors' as CollectionSlug,
-      required: false,
-    },
-    {
-      name: 'cover',
-      type: 'upload',
-      relationTo: 'media' as CollectionSlug,
-      required: false,
-    },
-    {
-      name: 'audio',
-      label: 'Audio / Track',
-      type: 'upload',
-      relationTo: 'media' as CollectionSlug,
-      required: true,
+      hooks: {
+        beforeValidate: [
+          ({ value, data }) => {
+            if (!value && data?.number) {
+              return String(data.number).padStart(3, '0')
+            }
+            return value
+          },
+        ],
+      },
     },
     {
       name: 'description',
       type: 'textarea',
       admin: {
-        placeholder: 'Короткое описание',
+        placeholder: 'Podcast description',
       },
     },
     {
-      name: 'body',
-      label: 'Текст (rich)',
-      type: 'richText',
+      name: 'release_date',
+      type: 'date',
+      required: true,
       admin: {
-        description: 'Полный текст выпуска',
+        position: 'sidebar',
+        date: {
+          pickerAppearance: 'dayOnly',
+          displayFormat: 'dd/MM/yyyy',
+        },
       },
     },
     {
-      name: 'tags',
-      type: 'array',
-      labels: {
-        singular: 'tag',
-        plural: 'tags',
+      name: 'artists',
+      type: 'relationship',
+      relationTo: 'artists',
+      hasMany: true,
+      admin: {
+        description: 'Featured artists (supports multiple for b2b)',
       },
-      fields: [
-        {
-          name: 'value',
-          type: 'text',
-          required: true,
-        },
-      ],
+    },
+    {
+      name: 'audio_url',
+      type: 'text',
+      admin: {
+        description: 'Direct audio file URL (or upload via media)',
+      },
+    },
+    {
+      name: 'audio',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Upload audio file',
+      },
+      filterOptions: {
+        mimeType: { contains: 'audio' },
+      },
+    },
+    {
+      name: 'duration_seconds',
+      type: 'number',
+      admin: {
+        position: 'sidebar',
+        description: 'Auto-calculated from audio file via ffprobe',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'cover',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Podcast cover image',
+      },
+      filterOptions: {
+        mimeType: { contains: 'image' },
+      },
     },
     {
       name: 'mirrors',
       type: 'group',
-      label: 'Зеркала',
+      label: 'External Links',
       fields: [
         {
           name: 'vk',
-          label: 'VK Podcast URL',
+          label: 'VK URL',
           type: 'text',
         },
         {
@@ -108,20 +151,35 @@ export const Podcasts: CollectionConfig = {
       ],
     },
     {
-      name: 'status',
-      type: 'select',
-      defaultValue: 'draft',
-      options: [
-        { label: 'Draft', value: 'draft' },
-        { label: 'Published', value: 'published' },
-      ],
-    },
-    {
-      name: 'publishedAt',
-      type: 'date',
+      name: 'seo',
+      type: 'group',
       admin: {
-        position: 'sidebar',
+        description: 'SEO metadata',
       },
+      fields: [
+        {
+          name: 'title',
+          type: 'text',
+          admin: {
+            placeholder: 'SEO title (defaults to podcast title)',
+          },
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          admin: {
+            placeholder: 'SEO description',
+          },
+        },
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description: 'Open Graph image',
+          },
+        },
+      ],
     },
   ],
   timestamps: true,
